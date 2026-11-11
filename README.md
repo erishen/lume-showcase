@@ -99,6 +99,15 @@ cd work/lume/lume-showcase
 docker compose up -d --build
 ```
 
+The lume-core static server is production-tuned: content-hashed `/assets/*`
+(built by Vite) are served `Cache-Control: public, max-age=31536000,
+immutable` (the filename is the content address), `index.html` stays
+`no-cache`, and the build precompresses `.gz` siblings so clients that accept
+gzip get `Content-Encoding: gzip` (~3x smaller bundle). Every response carries
+`X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy` and a
+`Content-Security-Policy: default-src 'self'` (overridable via
+`server { csp = "..." }`).
+
 - Runs as non-root `app` (uid 100); `--read-only` is safe (the server writes
   nothing — `/tmp` is the only writable mount point).
 - `LUME_BIND=0.0.0.0` is set in the image (container needs all interfaces);

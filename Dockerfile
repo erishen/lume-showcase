@@ -18,6 +18,9 @@ COPY lume-showcase/web/package.json lume-showcase/web/package-lock.json ./
 RUN npm ci --no-audit --no-fund --include=optional
 COPY lume-showcase/web ./
 RUN npm run build
+# Precompress hashed assets for the static server's `.gz` sibling
+# negotiation (Content-Encoding: gzip + immutable caching in lume-core).
+RUN find /build/dist -type f \( -name '*.js' -o -name '*.css' \) -exec gzip -k {} \;
 
 # ---- 2. lume-core build (no libLLVM -> interpreter + text backends; the
 #         showcase server runs on the interpreter, so the LLVM backend is
