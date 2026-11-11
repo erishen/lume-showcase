@@ -38,10 +38,11 @@ cd web && npm install && npm run build
 cd web && npm run dev   # http://localhost:5173
 ```
 
-The UI has an **EN / 中文 toggle** (top-right). The lume-core API stays
-English (the public source of truth); the frontend translates display strings
-for the Chinese view and remembers your choice in `localStorage`. Without a
-stored preference it follows the browser language (default English).
+The UI has a language toggle in the top-right (English / Chinese). The
+lume-core API stays English (the public source of truth); the frontend
+translates display strings for the Chinese view and remembers your choice in
+`localStorage`. Without a stored preference it follows the browser language
+(default English).
 
 The **Agent** tab demonstrates the autonomous plan → act → observe → refine
 cycle with a self-contained lume loop (deterministic policy, no external LLM
