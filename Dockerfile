@@ -6,8 +6,8 @@
 #   cd work/lume
 #   docker build -f lume-showcase/Dockerfile -t lume-showcase .
 # 运行：
-#   docker run --rm -p 8793:8793 lume-showcase
-# 验证：curl http://127.0.0.1:8793/api/health
+#   docker run --rm -p 18793:18793 lume-showcase
+# 验证：curl http://127.0.0.1:18793/api/health
 
 # ---- 1. UI build (React 18 + Vite + TS) ----
 FROM node:20-alpine AS ui
@@ -37,7 +37,7 @@ COPY --from=ui /build/web/dist ./web/dist
 COPY lume-showcase/server.lume ./server.lume
 COPY lume-showcase/src ./src
 ENV LUME_BIND=0.0.0.0
-EXPOSE 8793
+EXPOSE 18793
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -q -O - http://127.0.0.1:8793/api/health | grep -q '"status":200' || exit 1
+  CMD wget -q -O - http://127.0.0.1:18793/api/health | grep -q '"status":200' || exit 1
 CMD ["./bin/lume-core", "server.lume"]

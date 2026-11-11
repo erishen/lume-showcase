@@ -24,17 +24,17 @@ interpreter.
 # 1. backend (lume-core HTTP server: /api/features /api/algorithms /api/apps + static)
 cd work/lume/lume-showcase
 ../lume-core/bin/lume-core server.lume
-# -> serving http://127.0.0.1:8793
+# -> serving http://127.0.0.1:18793
 
 # 2. verify
-curl http://127.0.0.1:8793/api/health
+curl http://127.0.0.1:18793/api/health
 # -> {"status":200,...,"body":"{\"ok\":true,...}"}
 
 # 3. frontend (production: build into web/dist, served by lume-core docroot)
 cd web && npm install && npm run build
-# then reopen http://127.0.0.1:8793/ (same process serves API + static)
+# then reopen http://127.0.0.1:18793/ (same process serves API + static)
 
-# 4. frontend dev mode (Vite proxy /api -> :8793)
+# 4. frontend dev mode (Vite proxy /api -> :18793)
 cd web && npm run dev   # http://localhost:5173
 ```
 
@@ -72,8 +72,8 @@ backends — no libLLVM needed) serving the API + the built React app.
 ```sh
 cd work/lume                 # build context must be the parent of both dirs
 docker build -f lume-showcase/Dockerfile -t lume-showcase .
-docker run --rm -p 8793:8793 lume-showcase
-curl http://127.0.0.1:8793/api/health
+docker run --rm -p 18793:18793 lume-showcase
+curl http://127.0.0.1:18793/api/health
 # -> {"status":200,...,"body":"{\"ok\":true,...}"}
 ```
 
@@ -89,5 +89,5 @@ curl http://127.0.0.1:8793/api/health
 - Requires a `lume-core` build at `../lume-core/bin/lume-core` (repo-relative).
 - The `server.lume` docroot points to `web/dist`; build the frontend before
   visiting `/` in production mode.
-- Frontend dev mode proxies `/api` to `127.0.0.1:8793` (see `vite.config.ts`).
-- Port `8793`; change in `server.lume` and `vite.config.ts` together.
+- Frontend dev mode proxies `/api` to `127.0.0.1:18793` (see `vite.config.ts`).
+- Port `18793`; change in `server.lume` and `vite.config.ts` together.

@@ -2,9 +2,9 @@
 // + 静态服务 web/dist（前端 build 产物）。用 lume-core 内建 server{} + run()：
 //
 //   运行：bin/lume-core server.lume     （cwd = 本仓库根）
-//   验证：curl http://127.0.0.1:8793/api/health
+//   验证：curl http://127.0.0.1:18793/api/health
 //
-// 前端开发模式（Vite :5173）走 proxy /api -> 127.0.0.1:8793，生产用 docroot。
+// 前端开发模式（Vite :5173）走 proxy /api -> 127.0.0.1:18793，生产用 docroot。
 
 import "./src/features.lume" as feats;
 import "./src/algorithms.lume" as algos;
@@ -52,7 +52,7 @@ let bind_host = env("LUME_BIND", "127.0.0.1");
 
 server {
   host = bind_host;
-  port = 8793;
+  port = 18793;
   docroot = "web/dist";
 }
 run();
