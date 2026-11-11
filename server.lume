@@ -11,6 +11,7 @@
 import "./src/features.lume" as feats;
 import "./src/algorithms.lume" as algos;
 import "./src/agent.lume" as agent;
+import "./src/overview.lume" as overview;
 
 // ---- public application catalog (neutral · no industry/proprietary info) ----
 func apps() {
@@ -49,6 +50,10 @@ get "/api/health", (req) => {
 
 get "/api/features", (req) => {
   return json(stringify(feats.feature_list()));
+};
+
+get "/api/overview", (req) => {
+  return json(stringify(overview.overview_sections()));
 };
 
 get "/api/algorithms", (req) => {

@@ -42,7 +42,7 @@ def main() -> int:
 
     bad = []
     total = 0
-    for ep in ("features", "algorithms", "apps", "agent", "bench"):
+    for ep in ("overview", "features", "algorithms", "apps", "agent", "bench"):
         for item in get_list(ep):
             total += 1
             n = item["name"]

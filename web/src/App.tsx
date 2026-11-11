@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
-import type { AgentItem, Algorithm, AppItem, Bench, Feature } from './types';
-import { getAgent, getAlgorithms, getApps, getBench, getFeatures } from './api';
+import type { AgentItem, Algorithm, AppItem, Bench, Feature, OverviewItem } from './types';
+import { getAgent, getAlgorithms, getApps, getBench, getFeatures, getOverview } from './api';
 import { getInitialLang, localize, saveLang, ui } from './i18n';
 import type { Lang } from './i18n';
 import { getDetail } from './content';
 
-type Tab = 'features' | 'algorithms' | 'apps' | 'agent' | 'bench';
+type Tab = 'overview' | 'features' | 'algorithms' | 'apps' | 'agent' | 'bench';
 
 // Expandable detail panel: longer description + key points + the actual lume
 // source that produced the demo. Keyed by the API's English name (content.ts).
-function Detail({ name, lang }: { name: string; lang: Lang }) {
+// showCode=false is used by Overview, whose sample source is always visible.
+function Detail({ name, lang, showCode = true }: { name: string; lang: Lang; showCode?: boolean }) {
   const d = getDetail(name);
   if (!d) return null;
   const zh = lang === 'zh';
@@ -20,12 +21,48 @@ function Detail({ name, lang }: { name: string; lang: Lang }) {
       <ul className="points">
         {(zh ? d.pointsZh : d.pointsEn).map((p, i) => <li key={i}>{p}</li>)}
       </ul>
-      {d.code && (
+      {showCode && d.code && (
         <>
           <div className="code-label">{ui.codeLabel[lang]}</div>
           <pre className="code">{d.code}</pre>
         </>
       )}
+    </div>
+  );
+}
+
+// "What is lume" tour: the sample source is always visible (it is teaching
+// text from content.ts), with the real executed output underneath.
+function Overview({ data, lang, open, onToggle }: { data: OverviewItem[]; lang: Lang; open: Set<string>; onToggle: (n: string) => void }) {
+  return (
+    <div className="grid">
+      {data.map((o, i) => {
+        const x = localize(o, lang);
+        const isOpen = open.has(o.name);
+        const d = getDetail(o.name);
+        return (
+          <div className="card" key={i}>
+            <div className="title">
+              <h3>{x.name}</h3>
+              <span className="badge ok">{x.status}</span>
+            </div>
+            <p className="desc">{x.desc}</p>
+            {d?.code && (
+              <>
+                <div className="code-label">{ui.codeLabel[lang]}</div>
+                <pre className="code">{d.code}</pre>
+              </>
+            )}
+            <div className="demo">{x.output}</div>
+            {getDetail(o.name) && (
+              <button className="detail-toggle" onClick={() => onToggle(o.name)} aria-expanded={isOpen}>
+                {isOpen ? ui.hide[lang] : ui.details[lang]}
+              </button>
+            )}
+            {isOpen && <Detail name={o.name} lang={lang} showCode={false} />}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -174,7 +211,7 @@ function Performance({ data, lang, open, onToggle }: { data: Bench[]; lang: Lang
 }
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('features');
+  const [tab, setTab] = useState<Tab>('overview');
   const [lang, setLang] = useState<Lang>(getInitialLang);
   const [open, setOpen] = useState<Set<string>>(new Set());
   // Lazy per-tab fetch: only the active tab is loaded (1 request on mount,
@@ -188,6 +225,7 @@ export default function App() {
   useEffect(() => {
     if (cache[tab] !== undefined) return;
     const loaders: Record<Tab, () => Promise<unknown>> = {
+      overview: getOverview,
       features: getFeatures,
       algorithms: getAlgorithms,
       apps: getApps,
@@ -243,41 +281,52 @@ export default function App() {
 
       <div className="tabs">
         <button
+          className={tab === 'overview' ? 'active' : ''}
+          onClick={() => setTab('overview')}
+          aria-pressed={tab === 'overview'}
+        >
+          {tabLabels[0]}
+        </button>
+        <button
           className={tab === 'features' ? 'active' : ''}
           onClick={() => setTab('features')}
           aria-pressed={tab === 'features'}
         >
-          {tabLabels[0]}
+          {tabLabels[1]}
         </button>
         <button
           className={tab === 'algorithms' ? 'active' : ''}
           onClick={() => setTab('algorithms')}
           aria-pressed={tab === 'algorithms'}
         >
-          {tabLabels[1]}
+          {tabLabels[2]}
         </button>
         <button
           className={tab === 'apps' ? 'active' : ''}
           onClick={() => setTab('apps')}
           aria-pressed={tab === 'apps'}
         >
-          {tabLabels[2]}
+          {tabLabels[3]}
         </button>
         <button
           className={tab === 'agent' ? 'active' : ''}
           onClick={() => setTab('agent')}
           aria-pressed={tab === 'agent'}
         >
-          {tabLabels[3]}
+          {tabLabels[4]}
         </button>
         <button
           className={tab === 'bench' ? 'active' : ''}
           onClick={() => setTab('bench')}
           aria-pressed={tab === 'bench'}
         >
-          {tabLabels[4]}
+          {tabLabels[5]}
         </button>
       </div>
+
+      {tab === 'overview' &&
+        (error ? <div className="error">{error}</div> :
+         data ? <Overview data={data as OverviewItem[]} lang={lang} open={open} onToggle={toggleDetail} /> : <div className="loading">{ui.loading[lang]}</div>)}
 
       {tab === 'features' &&
         (error ? <div className="error">{error}</div> :

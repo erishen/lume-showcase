@@ -260,6 +260,28 @@ const zhDict: Record<string, Fields> = {
     name: '运行时接线（catalog · tools · mcps · skills）',
     desc: 'lume-core 智能体内省 + LLM 钩子（外部/可选）',
   },
+
+  // ---- overview (src/overview.lume) ----
+  'what is lume': {
+    name: 'lume 是什么',
+    desc: '一门独立、静态类型语言 + 一个编译器（lume-core）——无前端构建、无智能体运行时',
+  },
+  'three backends': {
+    name: '三后端一致',
+    desc: '同一份源码在解释器、IR 文本与 libLLVM 后端行为一致',
+  },
+  'core syntax': {
+    name: '核心语法',
+    desc: '静态类型 · 枚举 + 模式匹配 · 高阶函数 · 模块 · Result',
+  },
+  'builtin HTTP': {
+    name: '内建 HTTP',
+    desc: 'server{} + run() 服务路由与 SSE——内建能力而非 Web 框架',
+  },
+  'quick start': {
+    name: '快速上手',
+    desc: '一个二进制：interpret · --check · --compile（native）· --compile-text',
+  },
 };
 
 // Localize an API item: English is the source of truth; zh overrides fields.
@@ -273,12 +295,12 @@ export function localize<T extends { name: string }>(item: T, lang: Lang): T {
 // Static UI strings.
 export const ui = {
   headerSub: {
-    en: 'lume language features · algorithm status · public application landscape — served by lume-core',
-    zh: 'lume 语言特性 · 算法现状 · 公共应用全景 — 由 lume-core 提供',
+    en: 'what is lume · language features · algorithm status · public application landscape — served by lume-core',
+    zh: 'lume 是什么 · 语言特性 · 算法现状 · 公共应用全景 — 由 lume-core 提供',
   },
   tabs: {
-    en: ['Language features', 'Algorithms', 'Applications', 'Agent', 'Performance'],
-    zh: ['语言特性', '算法', '应用', '智能体', '性能'],
+    en: ['What is lume', 'Language features', 'Algorithms', 'Applications', 'Agent', 'Performance'],
+    zh: ['lume 是什么', '语言特性', '算法', '应用', '智能体', '性能'],
   },
   loading: { en: 'loading…', zh: '加载中…' },
   toggleLabel: { en: '中文', zh: 'EN' },

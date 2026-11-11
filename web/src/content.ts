@@ -513,6 +513,69 @@ out = push(out, { name: "wall 3 · blas C kernel",
     ['C kernel 12x', 'Strict FP: k ascending, no FMA', 'Bit-identical 3 backends'],
     ['C 内核 12×', '严格 FP：k 升序·无 FMA', '三后端逐位一致'],
   ),
+
+  // ---- overview (src/overview.lume) ----
+  'what is lume': d(
+    'lume is a standalone, statically typed language with one compiler (lume-core). A .lume script runs as-is, no build step, no framework: bindings are typed (annotated or inferred), functions are first-class, data is algebraic (enum + match), and modules split a program across files. This tree is the language itself — the agent runtime and frontend tooling live elsewhere.',
+    'lume 是一门独立、静态类型语言，只有一个编译器（lume-core）。.lume 脚本原样运行，无构建步骤、无框架：绑定有类型（标注或推断）、函数是一等公民、数据是代数式（枚举 + 模式匹配）、模块跨文件拆分程序。本树即语言本体——智能体运行时与前端工具在别处。',
+    `// hello.lume — a lume program, no build step, one binary
+func main(): int {
+  let nums: int[] = [1, 2, 3];
+  let total = reduce((acc, x) => acc + x, nums, 0);
+  print("sum=" + str(total));   // sum=6
+  return 0;
+}`,
+    ['Standalone language + one compiler', 'Static typing (annotated or inferred)', 'Functions are first-class · modules', 'No build step · no framework'],
+    ['独立语言 + 一个编译器', '静态类型（标注或推断）', '函数一等公民 · 模块', '无构建步骤 · 无框架'],
+  ),
+  'three backends': d(
+    'The selling point: the same source behaves identically on all three backends — the tree-walking interpreter, the hand-written LLVM-IR text emitter, and the libLLVM C API emitter. The showcase verifies this: every endpoint above is byte-identical across the three, enforced in CI.',
+    '核心卖点：同一份源码在三个后端行为一致——树遍历解释器、手写 LLVM-IR 文本发射器、libLLVM C API 发射器。本 showcase 验证了这一点：上面每个端点在三个后端逐字节一致，CI 强制约束。',
+    `// the core rule: '/' is always float, on every backend
+let r = 7 / 2;
+print(str(r));                  // 3.5, not 3
+// run it three ways:
+//   ./bin/lume-core app.lume           # interpreter
+//   ./bin/lume-core --compile-text ... # IR text -> clang
+//   ./bin/lume-core --compile ...      # libLLVM`,
+    ['Interpreter · IR text · libLLVM', 'Byte-identical output (CI-enforced)', "'/' is always float"],
+    ['解释器 · IR 文本 · libLLVM', '逐字节一致（CI 强制）', '“/” 恒为浮点'],
+  ),
+  'core syntax': d(
+    'The language core: enum + match give algebraic data types with exhaustive pattern binding; map/filter/reduce give higher-order pipelines; Result carries success or error without exceptions; import/export split modules. Types are optional where they can be inferred — write an annotation only when the compiler asks.',
+    '语言核心：枚举 + 模式匹配提供带穷尽模式绑定的代数数据类型；map/filter/reduce 提供高阶管道；Result 无异常地携带成功或错误；import/export 拆分模块。可推断处类型可选——编译器要求时才写标注。',
+    `enum Shape { Cir(r: float) | Sq(w: float) }
+func area(s: Shape): float {
+  return match (s) { Cir(r) => r * r * 3.14159, Sq(w) => w * w };
+}
+let xs = [1, 2, 3, 4, 5];
+let evens = filter((x) => x % 2 == 0, xs);  // [2, 4]`,
+    ['enum + match (algebraic data types)', 'HOF: map/filter/reduce · trailing closure', 'Result · modules (import/export)'],
+    ['枚举 + 模式匹配（代数数据类型）', 'HOF：map/filter/reduce · 尾闭包', 'Result · 模块（import/export）'],
+  ),
+  'builtin HTTP': d(
+    'The language embeds a minimal HTTP capability, not a framework: server{} + run() serves routes (each a closure) and a static docroot, with SSE streaming for long-lived responses. One process, same origin, no CORS — this showcase is itself that server.',
+    '语言内嵌一个极简 HTTP 能力而非框架：server{} + run() 服务路由（每个是闭包）与静态 docroot，长连接响应走 SSE 流式。单进程、同源、无 CORS——本 showcase 本身就是这个服务。',
+    `// one process: routes + static docroot + SSE
+get "/api/health", (req) => {
+  return { status: 200, type: "application/json", body: "{}" };
+};
+server { host = "127.0.0.1"; port = 18793; docroot = "web/dist"; }
+run();`,
+    ['server{} + run() builtin', 'Route closures + static docroot', 'SSE streaming · same origin (no CORS)'],
+    ['server{} + run() 内建', '路由闭包 + 静态 docroot', 'SSE 流式 · 同源（无 CORS）'],
+  ),
+  'quick start': d(
+    'One binary, no runtime dependency: interpret a script, check it (parse + type-check), or compile it to native via libLLVM. When libLLVM is absent the build still works — only --compile is unavailable.',
+    '一个二进制、无运行时依赖：解释脚本、检查（解析 + 类型检查）、或经 libLLVM 编译为 native。缺 libLLVM 时仍能构建——仅 --compile 不可用。',
+    `# one binary, no node, no pnpm, no server runtime
+./bin/lume-core app.lume             # interpret
+./bin/lume-core --check app.lume     # parse + type-check only
+./bin/lume-core --compile app.lume   # native via libLLVM
+./bin/lume-core --compile-text app.lume  # IR text -> clang`,
+    ['One binary (C11 compiler only)', 'interpret / --check / --compile', 'No runtime dependency'],
+    ['一个二进制（仅需 C11 编译器）', 'interpret / --check / --compile', '无运行时依赖'],
+  ),
 };
 
 export function getDetail(name: string): Detail | undefined {

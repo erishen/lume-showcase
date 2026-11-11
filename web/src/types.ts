@@ -5,6 +5,13 @@ export interface Feature {
   status: string;
 }
 
+export interface OverviewItem {
+  name: string;
+  desc: string;
+  output: string;
+  status: string;
+}
+
 export interface Algorithm {
   name: string;
   lib: string;

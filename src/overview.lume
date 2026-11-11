@@ -1,0 +1,64 @@
+// src/overview.lume — "what is lume" language tour (public, neutral).
+// overview_sections() returns [{name, desc, output, status}] where output is
+// the actual executed result of the section's lume sample — proof the code
+// runs, and (because the same source is compiled by all three backends) that
+// the interpreter, IR-text and libLLVM backends agree byte-for-byte.
+//
+// The sample *source* shown to visitors lives in web/src/content.ts (it is
+// teaching text, keyed by the English name); this file runs the real thing.
+//
+// Language discipline (this project follows it): '/' is always float ·
+// let is function-scoped (unique loop variable names) · list is reference
+// semantics (push mutates in place) · print takes one arg + str() concat.
+
+// ① what is lume — a standalone, statically typed language with one compiler.
+func demo_what(): string {
+  let nums: int[] = [1, 2, 3];
+  let total = reduce((acc, x) => acc + x, nums, 0);
+  let doubled = map((x) => x * 2, nums);
+  return "sum([1,2,3])=" + str(total) + " doubled=" + str(doubled);
+}
+
+// ② three backends — the same source behaves identically on interpreter,
+// hand-written IR text and libLLVM. '/' is always float (the core rule).
+func demo_backends(): string {
+  let r = 7 / 2;
+  return "7/2=" + str(r) + " is_float=" + str(r > 3.0 and r < 4.0);
+}
+
+// ③ core syntax — enum + match (algebraic data types), higher-order functions.
+enum OShape { Cir(r: float) | Sq(w: float) }
+
+func oarea(s: OShape): float {
+  return match (s) { Cir(r) => r * r * 3.141592653589793, Sq(w) => w * w };
+}
+
+func demo_syntax(): string {
+  let c: float = oarea(Cir(2.0));
+  let q: float = oarea(Sq(3.0));
+  let xs = [1, 2, 3, 4, 5];
+  let evens = filter((x) => x % 2 == 0, xs);
+  return "circle=" + str(c) + " square=" + str(q) + " evens=" + str(evens);
+}
+
+// ④ builtin HTTP — server{} + run() is a builtin capability, not a framework.
+func demo_http(): string {
+  return "server { host/port/docroot } + run() · get \"/api/x\", (req) => { ... } · SSE";
+}
+
+// ⑤ quick start — one binary, three ways to run it.
+func demo_cli(): string {
+  return "./bin/lume-core app.lume      # interpret · --check parses + type-checks · --compile emits native";
+}
+
+// ---- public list ----
+
+export func overview_sections() {
+  let out = [];
+  out = push(out, { name: "what is lume", desc: "a standalone, statically typed language + one compiler (lume-core) — no frontend build, no agent runtime", output: demo_what(), status: "ok" });
+  out = push(out, { name: "three backends", desc: "the same source behaves identically on the interpreter, IR-text and libLLVM backends", output: demo_backends(), status: "ok" });
+  out = push(out, { name: "core syntax", desc: "static typing · enum + match · higher-order functions · modules · Result", output: demo_syntax(), status: "ok" });
+  out = push(out, { name: "builtin HTTP", desc: "server{} + run() serves routes and SSE — a builtin capability, not a web framework", output: demo_http(), status: "ok" });
+  out = push(out, { name: "quick start", desc: "one binary: interpret, --check, --compile (native), --compile-text", output: demo_cli(), status: "ok" });
+  return out;
+}
