@@ -581,3 +581,21 @@ run();`,
 export function getDetail(name: string): Detail | undefined {
   return detail[name];
 }
+
+// GitHub link for each application card, pointing at the lume-core source
+// that actually implements it. Libraries live in lib/<name>.lume; the
+// builtin capability apps point at the C file that provides them.
+export const appRepo: Record<string, string> = {
+  'HTTP API / Web service': 'https://github.com/erishen/lume-core/blob/main/src/bridge_serve.c',
+  'scientific computing CLI': 'https://github.com/erishen/lume-core/blob/main/lib/sci.lume',
+  'ML training & inference': 'https://github.com/erishen/lume-core/blob/main/lib/ml.lume',
+  'PINN solver': 'https://github.com/erishen/lume-core/blob/main/lib/pinn.lume',
+  'PDE numerical solver': 'https://github.com/erishen/lume-core/blob/main/lib/pde.lume',
+  'data pipeline / batch': 'https://github.com/erishen/lume-core/blob/main/src/builtins_hof.c',
+  'static site + API in one process': 'https://github.com/erishen/lume-core/blob/main/src/bridge_serve.c',
+  'MCP server': 'https://github.com/erishen/lume-core/blob/main/src/bridge_mcp.c',
+  'graph / signal / statistics tools': 'https://github.com/erishen/lume-core/blob/main/lib/graph.lume',
+  'SQLite data storage': 'https://github.com/erishen/lume-core/blob/main/src/builtins_sql.c',
+  'crypto / hash tools': 'https://github.com/erishen/lume-core/blob/main/src/builtins_crypt.c',
+  'optimization / operations research': 'https://github.com/erishen/lume-core/blob/main/lib/optim.lume',
+};
