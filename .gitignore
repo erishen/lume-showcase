@@ -1,6 +1,8 @@
 web/node_modules/
 web/dist/
 web/*.tsbuildinfo
+# the lockfile must be committed so CI's `npm ci` installs deterministically
+!web/package-lock.json
 *.exe
 *.o
 .DS_Store
