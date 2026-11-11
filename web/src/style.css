@@ -17,8 +17,15 @@ body {
   color: var(--fg);
 }
 .app { max-width: 960px; margin: 0 auto; padding: 28px 20px 64px; }
+.header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 header h1 { margin: 0 0 4px; font-size: 26px; }
 header p { margin: 0 0 24px; color: var(--muted); }
+.lang-toggle {
+  flex: 0 0 auto; margin-top: 4px; padding: 6px 16px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--panel); color: var(--fg);
+  cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.lang-toggle:hover { border-color: var(--accent); color: var(--accent); }
 .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
 .tabs button {
   padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border);
