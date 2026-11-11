@@ -7,12 +7,12 @@
 export interface Detail {
   longEn: string;
   longZh: string;
-  code: string;
+  code?: string;
   pointsEn: string[];
   pointsZh: string[];
 }
 
-const d = (longEn: string, longZh: string, code: string, pointsEn: string[], pointsZh: string[]): Detail => ({
+const d = (longEn: string, longZh: string, code: string | undefined, pointsEn: string[], pointsZh: string[]): Detail => ({
   longEn, longZh, code, pointsEn, pointsZh,
 });
 
@@ -394,6 +394,124 @@ return "dispatch(calls=[square,double,square]) = [" + out + "]";`,
 // env hook: LLM_API_URL / LLM_MODEL (external model, optional)`,
     ['catalog/tools/mcps/skills introspection', 'LLM hook via env (optional)', 'Interpreter-side · demo self-contained'],
     ['catalog/tools/mcps/skills 内省', 'LLM 钩子经环境变量（可选）', '解释器侧 · demo 自包含'],
+  ),
+
+  // ---- apps (server.lume) ----
+  'HTTP API / Web service': d(
+    'The builtin server{} + run() serves HTTP routes with closures plus a static docroot — this showcase is itself one: /api/* routes and the built React frontend from a single process, no separate frontend server.',
+    '内建 server{} + run() 以路由闭包 + 静态 docroot 服务 HTTP——本 showcase 即一例：单进程同时服务 /api/* 路由与构建后的 React 前端，无需独立前端服务。',
+    undefined,
+    ['server{} + run() builtin', 'Route closures per path', 'docroot static + API same process'],
+    ['server{} + run() 内建', '每路径路由闭包', 'docroot 静态 + API 同进程'],
+  ),
+  'scientific computing CLI': d(
+    'The sci and linalg libraries are pure lume and run as CLI tools: numerical integration, interpolation, linear solves and eigenvalues straight from the shell.',
+    'sci 与 linalg 库是纯 lume，可作 CLI 运行：数值积分、插值、线性求解与特征值直接在 shell 用。',
+    undefined,
+    ['sci.lume / linalg.lume', 'trapz / simpson / interp', 'solve / eig from the shell'],
+    ['sci.lume / linalg.lume', 'trapz / simpson / 插值', 'shell 直接求解 / 特征值'],
+  ),
+  'ML training & inference': d(
+    'The ml library trains and infers MLPs and attention in pure .lume — the training loop is just a lume function, no framework and no runtime dependency.',
+    'ml 库用纯 .lume 训练与推理 MLP/注意力——训练循环就是 lume 函数，无框架、无运行时依赖。',
+    undefined,
+    ['ml.lume pure lume', 'MLP / attention / clustering', 'training loop in lume'],
+    ['ml.lume 纯 lume', 'MLP / 注意力 / 聚类', 'lume 内训练循环'],
+  ),
+  'PINN solver': d(
+    'Physics-informed neural networks solve PDEs by folding the residual into the loss. The analytic gradient (adjoint dual reverse sweep) removes tape allocation and trains ~200x faster than numeric differentiation.',
+    '物理约束神经网络把残差并入损失解 PDE。解析梯度（伴随 dual 反扫）免除磁带分配，比数值微分快约 200×。',
+    undefined,
+    ['pinn.lume', 'analytic gradient ~200x', 'physics-constrained'],
+    ['pinn.lume', '解析梯度 ≈200×', '物理约束'],
+  ),
+  'PDE numerical solver': d(
+    'The pde library solves the heat and wave equations by finite differences, with explicit schemes and their stability conditions (dt <= 0.5 dx^2 for heat).',
+    'pde 库用有限差分解热方程与波动方程，含显式格式及其稳定条件（热方程 dt ≤ 0.5dx²）。',
+    undefined,
+    ['pde.lume', 'finite difference', 'heat / wave'],
+    ['pde.lume', '有限差分', '热 / 波动'],
+  ),
+  'data pipeline / batch': d(
+    'map/filter/reduce plus list reference semantics and the file builtins turn data pipelines into one-liners — no streaming framework needed.',
+    'map/filter/reduce + list 引用语义 + 文件内建，让数据管道成为一行代码——无需流式框架。',
+    undefined,
+    ['map / filter / reduce', 'list reference semantics', 'file builtins'],
+    ['map / filter / reduce', 'list 引用语义', '文件内建'],
+  ),
+  'static site + API in one process': d(
+    'The docroot static serving and the route API live in one binary: no separate frontend server, no CORS, one healthcheck, one image.',
+    'docroot 静态服务与路由 API 在同一个二进制：无独立前端服务、无 CORS、一个健康检查、一个镜像。',
+    undefined,
+    ['single binary', 'docroot + API', 'same-origin (no CORS)'],
+    ['单一二进制', 'docroot + API', '同源（无 CORS）'],
+  ),
+  'MCP server': d(
+    'lume-core ships an MCP stdio server (--mcp) that exposes lume tools to Model Context Protocol clients — the mcp_fs / mcp_math precedent, with OpenAI-style tool schemas.',
+    'lume-core 提供 MCP stdio 服务（--mcp），把 lume 工具暴露给模型上下文协议客户端——mcp_fs / mcp_math 先例，带 OpenAI 风格工具 schema。',
+    undefined,
+    ['bridge_mcp.c', 'stdio MCP server', 'tools exposed to MCP clients'],
+    ['bridge_mcp.c', 'stdio MCP 服务', '工具暴露给 MCP 客户端'],
+  ),
+  'graph / signal / statistics tools': d(
+    'Graph traversal, signal smoothing and distribution divergence are ready-to-use tools from the graph, sig and dist libraries — BFS, moving average, KL divergence and statistical tests.',
+    '图遍历、信号平滑与分布散度是 graph/sig/dist 库的即用工具——BFS、滑动平均、KL 散度与统计检验。',
+    undefined,
+    ['graph / sig / dist', 'BFS / smoothing / KL', 'statistical tests'],
+    ['graph / sig / dist', 'BFS / 平滑 / KL', '统计检验'],
+  ),
+  'SQLite data storage': d(
+    'sql_query is a builtin: structured queries against SQLite from lume, no driver, no ORM — the DB is just another builtin.',
+    'sql_query 是内建：lume 内对 SQLite 做结构化查询，无驱动、无 ORM——数据库就是又一个内建。',
+    undefined,
+    ['sql_query builtin', 'SQLite', 'structured queries'],
+    ['sql_query 内建', 'SQLite', '结构化查询'],
+  ),
+  'crypto / hash tools': d(
+    'crypt_sha512, hmac_sha256, ed25519 sign/verify and spawn subprocesses cover hashing, signing and shelling out — the crypto and process primitives an app needs.',
+    'crypt_sha512、hmac_sha256、ed25519 签名/验签与 spawn 子进程覆盖哈希、签名与外部命令——应用所需的加密与进程原语。',
+    undefined,
+    ['crypt_sha512 / hmac_sha256', 'ed25519 sign/verify', 'spawn subprocess'],
+    ['crypt_sha512 / hmac_sha256', 'ed25519 签名/验签', 'spawn 子进程'],
+  ),
+  'optimization / operations research': d(
+    'Gradient descent, Newton and line search from the optim library cover unconstrained and simple constrained optimization from lume.',
+    'optim 库的梯度下降、牛顿法与线搜索覆盖 lume 内的无约束与简单约束优化。',
+    undefined,
+    ['optim.lume', 'gradient descent / Newton', 'line search'],
+    ['optim.lume', '梯度下降 / 牛顿法', '线搜索'],
+  ),
+
+  // ---- bench (server.lume) ----
+  'wall 1 · PINN analytic gradient': d(
+    'The PINN analytic gradient (adjoint dual reverse sweep) trains ~207x faster than numeric differentiation on the compiled backends: loss 0.573 -> 0.00224 and 1.43% relative L2.',
+    'PINN 解析梯度（伴随 dual 反扫）在编译后端比数值微分快约 207×：loss 0.573 → 0.00224·相对 L2 1.43%。',
+    `// server.lume bench()
+out = push(out, { name: "wall 1 · PINN analytic gradient",
+  from: "4.5 min (numeric)", to: "1.3 s (analytic)",
+  speedup: 207, note: "training · loss 0.573 -> 0.00224 · rel L2 1.43%" });`,
+    ['Compiled backends', 'Analytic gradient ~207x', 'Loss 0.573 -> 0.00224'],
+    ['编译后端', '解析梯度 ≈207×', 'Loss 0.573 → 0.00224'],
+  ),
+  'wall 2 · codegen vs C': d(
+    'The lume code generator reaches C speed on scalar loops: 1.02x the C baseline — lume does not pay an interpreter tax on hot scalar code.',
+    'lume 代码生成器在标量循环达到 C 速：C 基线的 1.02×——lume 在热点标量代码上不付解释器税。',
+    `// server.lume bench()
+out = push(out, { name: "wall 2 · codegen vs C",
+  from: "1.00x (C)", to: "1.02x (lume)",
+  speedup: 1.02, note: "scalar loop · codegen reaches C speed" });`,
+    ['Scalar loop', '1.02x C baseline', 'No interpreter tax'],
+    ['标量循环', 'C 基线 1.02×', '无解释器税'],
+  ),
+  'wall 3 · blas C kernel': d(
+    'The blas C kernel matmul is 12x faster than pure lume and bit-identical across the interpreter, text and LLVM backends (strict FP: k ascending, no FMA contraction).',
+    'blas C 内核 matmul 比纯 lume 快 12×，且解释器/文本/LLVM 三后端逐位一致（严格 FP：k 升序·无 FMA 紧缩）。',
+    `// server.lume bench()
+out = push(out, { name: "wall 3 · blas C kernel",
+  from: "0.60 s (pure lume)", to: "0.05 s (C kernel)",
+  speedup: 12, note: "128x128 · 30 runs · bit-identical" });`,
+    ['C kernel 12x', 'Strict FP: k ascending, no FMA', 'Bit-identical 3 backends'],
+    ['C 内核 12×', '严格 FP：k 升序·无 FMA', '三后端逐位一致'],
   ),
 };
 

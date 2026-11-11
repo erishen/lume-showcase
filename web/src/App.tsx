@@ -20,8 +20,12 @@ function Detail({ name, lang }: { name: string; lang: Lang }) {
       <ul className="points">
         {(zh ? d.pointsZh : d.pointsEn).map((p, i) => <li key={i}>{p}</li>)}
       </ul>
-      <div className="code-label">{ui.codeLabel[lang]}</div>
-      <pre className="code">{d.code}</pre>
+      {d.code && (
+        <>
+          <div className="code-label">{ui.codeLabel[lang]}</div>
+          <pre className="code">{d.code}</pre>
+        </>
+      )}
     </div>
   );
 }
@@ -82,11 +86,12 @@ function Algorithms({ data, lang, open, onToggle }: { data: Algorithm[]; lang: L
   );
 }
 
-function Apps({ data, lang }: { data: AppItem[]; lang: Lang }) {
+function Apps({ data, lang, open, onToggle }: { data: AppItem[]; lang: Lang; open: Set<string>; onToggle: (n: string) => void }) {
   return (
     <div className="grid">
       {data.map((a, i) => {
         const x = localize(a, lang);
+        const isOpen = open.has(a.name);
         return (
           <div className="card" key={i}>
             <div className="title">
@@ -95,6 +100,12 @@ function Apps({ data, lang }: { data: AppItem[]; lang: Lang }) {
             </div>
             <p className="desc">{x.desc}</p>
             <div className="demo">{x.libs}</div>
+            {getDetail(a.name) && (
+              <button className="detail-toggle" onClick={() => onToggle(a.name)} aria-expanded={isOpen}>
+                {isOpen ? ui.hide[lang] : ui.details[lang]}
+              </button>
+            )}
+            {isOpen && <Detail name={a.name} lang={lang} />}
           </div>
         );
       })}
@@ -130,13 +141,14 @@ function Agent({ data, lang, open, onToggle }: { data: AgentItem[]; lang: Lang; 
 
 // Performance comparison (wall 1/2/3 · lume-core measured): bar width is
 // log10(speedup)-scaled so 207x and 1.02x stay balanced on a linear axis.
-function Performance({ data, lang }: { data: Bench[]; lang: Lang }) {
+function Performance({ data, lang, open, onToggle }: { data: Bench[]; lang: Lang; open: Set<string>; onToggle: (n: string) => void }) {
   const maxLog = Math.log10(Math.max(...data.map((d) => d.speedup)));
   return (
     <div className="grid">
       {data.map((b, i) => {
         const x = localize(b, lang);
         const w = Math.max(2, (Math.log10(b.speedup) / maxLog) * 100);
+        const isOpen = open.has(b.name);
         return (
           <div className="card" key={i}>
             <div className="title">
@@ -148,6 +160,12 @@ function Performance({ data, lang }: { data: Bench[]; lang: Lang }) {
               <div className="bar-fill" style={{ width: `${w}%` }} />
             </div>
             <p className="metric">{x.note}</p>
+            {getDetail(b.name) && (
+              <button className="detail-toggle" onClick={() => onToggle(b.name)} aria-expanded={isOpen}>
+                {isOpen ? ui.hide[lang] : ui.details[lang]}
+              </button>
+            )}
+            {isOpen && <Detail name={b.name} lang={lang} />}
           </div>
         );
       })}
@@ -271,7 +289,7 @@ export default function App() {
 
       {tab === 'apps' &&
         (error ? <div className="error">{error}</div> :
-         data ? <Apps data={data as AppItem[]} lang={lang} /> : <div className="loading">{ui.loading[lang]}</div>)}
+         data ? <Apps data={data as AppItem[]} lang={lang} open={open} onToggle={toggleDetail} /> : <div className="loading">{ui.loading[lang]}</div>)}
 
       {tab === 'agent' &&
         (error ? <div className="error">{error}</div> :
@@ -279,7 +297,7 @@ export default function App() {
 
       {tab === 'bench' &&
         (error ? <div className="error">{error}</div> :
-         data ? <Performance data={data as Bench[]} lang={lang} /> : <div className="loading">{ui.loading[lang]}</div>)}
+         data ? <Performance data={data as Bench[]} lang={lang} open={open} onToggle={toggleDetail} /> : <div className="loading">{ui.loading[lang]}</div>)}
 
       <footer>
         <b>{f.stack}</b>: {f.body}<code>{f.code}</code>{f.tail}

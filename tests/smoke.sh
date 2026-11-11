@@ -39,6 +39,8 @@ assert_count apps 12
 assert_count agent 3
 assert_count bench 3
 curl -s -o /dev/null -w "ok   static index %{http_code}\n" "http://127.0.0.1:$PORT/"
+echo "=== coverage gate (i18n zhDict + content.ts detail) ==="
+python3 "$ROOT/tests/check_coverage.py" "$PORT" || { echo "FAIL coverage gate"; exit 1; }
 curl -s "http://127.0.0.1:$PORT/api/features" > "$TMP/interp_features.json"
 curl -s "http://127.0.0.1:$PORT/api/algorithms" > "$TMP/interp_algorithms.json"
 curl -s "http://127.0.0.1:$PORT/api/agent" > "$TMP/interp_agent.json"
