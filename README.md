@@ -1,10 +1,10 @@
 # lume showcase
 
 A public showcase of the **lume language** and its **lume-core** runtime:
-language features, current algorithm status, and the public application
-landscape. The React frontend renders data produced by a real `lume-core`
-HTTP server — every feature and algorithm demo below actually ran on the lume
-interpreter.
+what the language is, its features, current algorithm status, the agent
+loop, and the public application landscape. The React frontend renders data
+produced by a real `lume-core` HTTP server — every feature and algorithm
+demo below actually ran on the lume interpreter.
 
 > Public & neutral by design: no industry/company/internal information anywhere
 > in this repository. Content is generic math, physics (heat equation), ML,
@@ -21,7 +21,7 @@ interpreter.
 ## Quick start
 
 ```sh
-# 1. backend (lume-core HTTP server: /api/features /api/algorithms /api/apps + static)
+# 1. backend (lume-core HTTP server: 7 /api/* endpoints + static docroot)
 cd work/lume/lume-showcase
 ../lume-core/bin/lume-core server.lume
 # -> serving http://127.0.0.1:18793
@@ -54,15 +54,26 @@ text and LLVM backends remain byte-identical.
 
 ```
 server.lume            lume-core HTTP API + static docroot (web/dist)
+src/overview.lume      "what is lume" tour (export overview_sections())
 src/features.lume      language feature self-checks (export feature_list())
 src/algorithms.lume    algorithm demos + wall-1/2/3 metrics (export algorithm_list())
+src/agent.lume         agent loop demo (export agent_demo())
 web/                   React frontend (Vite + TS)
-  src/App.tsx          three tabs: features / algorithms / applications
+  src/App.tsx          shell + lazy tab loader (React.lazy + Suspense)
+  src/tabs/            one chunk per tab (Overview/Features/Algorithms/Apps/Agent/Performance)
+  src/Detail.tsx       expandable detail panel (lazy — content.ts loads on demand)
+  src/content.ts       bilingual detail entries + teaching source
   src/api.ts           fetch /api/* (parses lume-core {status,type,body})
 ```
 
 ## What it shows
 
+- **Overview (what is lume, 5 sections)**: the standalone statically typed
+  language + one compiler (`lume-core`) with no build step or framework; the
+  three backends (interpreter / hand-written IR text / libLLVM) agree
+  byte-for-byte; core syntax (enum + match · HOF · modules · Result); builtin
+  HTTP (`server{}` + `run()` — a capability, not a framework); quick start
+  (one binary: interpret / `--check` / `--compile`).
 - **Language features (12)**: static typing & inference, enum + match,
   higher-order + trailing closure, range, Result + `?`, string cast & concat,
   module import, list reference semantics (measured: `push` mutates in place),
@@ -72,6 +83,9 @@ web/                   React frontend (Vite + TS)
   analytic gradients (wall 1 · 200×), MLP backprop, linalg, integration,
   gradient descent, k-means, 1D heat FDM, KL divergence, complex, signal
   smoothing, graph BFS.
+- **Agent loop**: the autonomous plan → act → observe → refine cycle in a
+  self-contained lume loop (deterministic policy, no external LLM) — the
+  interpreter, text and LLVM backends stay byte-identical.
 - **Performance (wall 1/2/3)**: measured speedups — 207× (PINN analytic
   gradient), 1.02× (codegen = C speed), 12× (blas C kernel), as a log-scaled
   bar chart from `/api/bench`.
@@ -103,10 +117,13 @@ The lume-core static server is production-tuned: content-hashed `/assets/*`
 (built by Vite) are served `Cache-Control: public, max-age=31536000,
 immutable` (the filename is the content address), `index.html` stays
 `no-cache`, and the build precompresses `.gz` siblings so clients that accept
-gzip get `Content-Encoding: gzip` (~3x smaller bundle). Every response carries
-`X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy` and a
-`Content-Security-Policy: default-src 'self'` (overridable via
-`server { csp = "..." }`).
+gzip get `Content-Encoding: gzip` (~3x smaller bundle). The React app is
+code-split: each tab is its own lazy chunk, and the 47-entry bilingual detail
+table loads only when a card is expanded — first paint is ~53 KB gzip. Every
+response carries `X-Content-Type-Options`, `X-Frame-Options: DENY`,
+`Referrer-Policy` and a `Content-Security-Policy: default-src 'self'`
+(overridable via `server { csp = "..." }`); the favicon is a same-origin
+static SVG so the strict CSP permits it.
 
 - Runs as non-root `app` (uid 100); `--read-only` is safe (the server writes
   nothing — `/tmp` is the only writable mount point).
@@ -121,10 +138,11 @@ gzip get `Content-Encoding: gzip` (~3x smaller bundle). Every response carries
 
 ```sh
 cd work/lume/lume-showcase
-bash tests/smoke.sh        # server (interp + text backend) API counts + byte-identical
+bash tests/smoke.sh        # server (interp + text + llvm backends) API counts + byte-identical
 ```
 
-`tests/smoke.sh` asserts all five API endpoints, the static index, that the
+`tests/smoke.sh` asserts all six `/api/*` data endpoints (overview,
+features, algorithms, apps, agent, bench), the static index, that the
 interpreter, text-backend **and** libLLVM-backend servers produce
 **byte-identical** JSON for every endpoint, and that each item's English name
 is covered by both the `zhDict` translation and a `content.ts` detail entry
