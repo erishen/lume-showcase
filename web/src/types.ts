@@ -20,3 +20,11 @@ export interface AppItem {
   libs: string;
   status: string;
 }
+
+export interface Bench {
+  name: string;
+  from: string;
+  to: string;
+  speedup: number;
+  note: string;
+}

@@ -27,6 +27,15 @@ func apps() {
   return out;
 }
 
+// ---- 性能对比（lume-core 实测·墙1/2/3·中性数据） ----
+func bench() {
+  let out = [];
+  out = push(out, { name: "wall 1 · PINN analytic gradient", from: "4.5 min (numeric)", to: "1.3 s (analytic)", speedup: 207, note: "训练·编译后端·loss 0.573 → 0.00224·相对 L2 1.43%" });
+  out = push(out, { name: "wall 2 · codegen vs C", from: "1.00× (C)", to: "1.02× (lume)", speedup: 1.02, note: "标量循环·codegen 已达 C 速" });
+  out = push(out, { name: "wall 3 · blas C kernel", from: "0.60 s (pure lume)", to: "0.05 s (C kernel)", speedup: 12, note: "128×128·30 次·逐位一致" });
+  return out;
+}
+
 func json(data) {
   return { status: 200, type: "application/json", body: stringify(data) };
 }
@@ -45,6 +54,10 @@ get "/api/algorithms", (req) => {
 
 get "/api/apps", (req) => {
   return json(apps());
+};
+
+get "/api/bench", (req) => {
+  return json(bench());
 };
 
 // 绑定地址默认 127.0.0.1（本地安全）；容器/跨机用 LUME_BIND=0.0.0.0 覆盖。

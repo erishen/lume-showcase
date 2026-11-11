@@ -60,6 +60,9 @@ web/                   React frontend (Vite + TS)
   analytic gradients (wall 1 · 200×), MLP backprop, linalg, integration,
   gradient descent, k-means, 1D heat FDM, KL divergence, complex, signal
   smoothing, graph BFS.
+- **Performance (wall 1/2/3)**: measured speedups — 207× (PINN analytic
+  gradient), 1.02× (codegen = C speed), 12× (blas C kernel), as a log-scaled
+  bar chart from `/api/bench`.
 - **Applications (12)**: HTTP API / web service, scientific CLI, ML training,
   PINN solver, PDE numerics, data pipelines, static site + API same process,
   MCP server, graph/signal/stats tools, SQLite storage, crypto/hash, optimization.
@@ -75,6 +78,13 @@ docker build -f lume-showcase/Dockerfile -t lume-showcase .
 docker run --rm -p 18793:18793 --read-only lume-showcase
 curl http://127.0.0.1:18793/api/health
 # -> {"status":200,...,"body":"{\"ok\":true,...}"}
+```
+
+Or with compose (one command, resource limits included):
+
+```sh
+cd work/lume/lume-showcase
+docker compose up -d --build
 ```
 
 - Runs as non-root `app` (uid 100); `--read-only` is safe (the server writes

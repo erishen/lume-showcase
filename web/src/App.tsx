@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { Algorithm, AppItem, Feature } from './types';
-import { getAlgorithms, getApps, getFeatures } from './api';
+import type { Algorithm, AppItem, Bench, Feature } from './types';
+import { getAlgorithms, getApps, getBench, getFeatures } from './api';
 
-type Tab = 'features' | 'algorithms' | 'apps';
+type Tab = 'features' | 'algorithms' | 'apps' | 'bench';
 
 function useFetch<T>(loader: () => Promise<T>): { data: T | null; error: string | null } {
   const [data, setData] = useState<T | null>(null);
@@ -68,11 +68,38 @@ function Apps({ data }: { data: AppItem[] }) {
   );
 }
 
+// 性能对比（墙 1/2/3·lume-core 实测）：bar 宽度按 log10(speedup) 缩放，
+// 避免 207× 与 1.02× 在线性刻度下失衡。
+function Performance({ data }: { data: Bench[] }) {
+  const maxLog = Math.log10(Math.max(...data.map((d) => d.speedup)));
+  return (
+    <div className="grid">
+      {data.map((b, i) => {
+        const w = Math.max(2, (Math.log10(b.speedup) / maxLog) * 100);
+        return (
+          <div className="card" key={i}>
+            <div className="title">
+              <h3>{b.name}</h3>
+              <span className="badge ok">{b.speedup}×</span>
+            </div>
+            <p className="desc">{b.from} → {b.to}</p>
+            <div className="bar-track">
+              <div className="bar-fill" style={{ width: `${w}%` }} />
+            </div>
+            <p className="metric">{b.note}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('features');
   const feats = useFetch(getFeatures);
   const algos = useFetch(getAlgorithms);
   const apps = useFetch(getApps);
+  const bench = useFetch(getBench);
 
   return (
     <div className="app">
@@ -103,6 +130,13 @@ export default function App() {
         >
           Applications
         </button>
+        <button
+          className={tab === 'bench' ? 'active' : ''}
+          onClick={() => setTab('bench')}
+          aria-pressed={tab === 'bench'}
+        >
+          Performance
+        </button>
       </div>
 
       {tab === 'features' &&
@@ -116,6 +150,10 @@ export default function App() {
       {tab === 'apps' &&
         (apps.error ? <div className="error">{apps.error}</div> :
          apps.data ? <Apps data={apps.data} /> : <div className="loading">loading…</div>)}
+
+      {tab === 'bench' &&
+        (bench.error ? <div className="error">{bench.error}</div> :
+         bench.data ? <Performance data={bench.data} /> : <div className="loading">loading…</div>)}
 
       <footer>
         <b>Stack</b>: lume language (static typing · enum/match · HOF · Result·? · modules) +
