@@ -1,27 +1,29 @@
-// src/features.lume —— lume 语言特性自检模块（public·中性）。
-// 每个特性配一个运行时 demo：feature_list() 返回 [{name, desc, demo, status}],
-// demo 是真实执行的结果（证明特性在当前 lume-core 可用）。被 server.lume import
-// 提供 /api/features；独立跑 `lume-core src/features.lume` 会打印文本版。
+// src/features.lume — lume language feature self-checks (public, neutral).
+// Each feature has a runtime demo: feature_list() returns
+// [{name, desc, demo, status}] where demo is the actual executed result
+// (proof the feature works on the current lume-core). Imported by
+// server.lume for /api/features.
 //
-// 语言约束（本项目遵守）：'/' 恒 float·let 函数作用域（循环变量唯一）·
-// list 引用语义（实测·push 原地追加并返回同一引用）·print 单参 + str() 拼接。
+// Language discipline (this project follows it): '/' is always float ·
+// let is function-scoped (unique loop variable names) · list is reference
+// semantics (push mutates in place) · print takes one arg + str() concat.
 
-// ---- 特性 demo（每个返回结果字符串·空串 = 特性不可用） ----
+// ---- feature demos (each returns a result string) ----
 
-// enum 声明（模块顶层——函数内不允许）。
+// enum declarations (module top-level only — not allowed inside functions).
 enum FShape { Cir(r: float) | Rect(w: float, h: float) }
 enum FColor { Red | Green | Blue }
 type FPoint = { x: int, y: int };
 
-// ① 静态类型与推断：类型标注 + let 推断 + int→float 宽化。
+// ① static typing & inference: type annotations + let inference + int→float widening.
 func demo_types(): string {
   let a: FPoint = { x: 3, y: 4 };
-  let dx = a.x;               // 推断 int
-  let w: float = 7;           // int 字面量宽化 float
+  let dx = a.x;               // inferred int
+  let w: float = 7;           // int literal widens to float
   return "p=" + str(a) + " dx=" + str(dx) + " widened=" + str(w);
 }
 
-// ② enum + match 穷尽匹配（模式绑定·臂内绑定作用域）。
+// ② enum + match (exhaustive·pattern binding·arm-scoped bindings).
 func demo_enum(): string {
   let s = Cir(2.0);
   let area = match (s) { Cir(r) => 3.14 * r * r, Rect(w, h) => w * h };
@@ -31,16 +33,16 @@ func demo_enum(): string {
   return "area=" + str(area) + " " + name + " " + word;
 }
 
-// ③ 高阶函数 + 尾随闭包：map/filter/reduce。
+// ③ higher-order + trailing closure: map/filter/reduce.
 func demo_hof(): string {
   let xs = [1, 2, 3, 4, 5];
-  let ys = map((x) => x * x, xs);                    // 尾随闭包
+  let ys = map((x) => x * x, xs);                    // trailing closure
   let evens = filter((x) => x % 2 == 0, xs);
   let total = reduce((acc, x) => acc + x, xs, 0);
   return "sq=" + str(ys) + " evens=" + str(evens) + " sum=" + str(total);
 }
 
-// ④ range 序列。
+// ④ range sequence.
 func demo_range(): string {
   let r = range(1, 5);
   let acc: string = "";
@@ -51,7 +53,7 @@ func demo_range(): string {
   return "range(1,5)=[" + acc + "] len=" + str(len(r));
 }
 
-// ⑤ Result + `?` 错误传播。
+// ⑤ Result + `?` error propagation.
 func demo_result(): string {
   let ok_part: Result = _report_ok();
   let e: Result = _divide(1, 0);
@@ -68,7 +70,7 @@ func _divide(a: int, b: int): Result {
   return { ok: a / b };
 }
 
-// ⑥ string 转换与拼接（str/int/float·含 map 访问器）。
+// ⑥ string cast & concat (str/int/float·map accessor).
 func demo_string(): string {
   let acc = { name: "lume", n: "42", amt: 3.5 };
   let tag = "v" + str(acc, "n", "0");
@@ -76,65 +78,61 @@ func demo_string(): string {
   return tag + "|" + str(acc, "name", "") + "|" + str(amt);
 }
 
-// ⑦ 模块系统：本文件即模块（export func 可被跨模块 import·见 server.lume）。
+// ⑦ module system: this file is a module (export funcs are importable).
 func demo_module(): string {
-  return "export func feature_list() 跨模块可用（server.lume 已 import）";
+  return "export func feature_list() cross-module usable (server.lume imports it)";
 }
 
-// ⑧ list 引用语义（实测·2026-11-11）：list 是可变容器·push 原地追加
-// 并返回同一引用（非拷贝值语义）——a 在 push(a,3) 后也被追加。
+// ⑧ list reference semantics (measured): list is a mutable container·push
+// appends in place and returns the same reference (not copy value semantics).
 func demo_list_sem(): string {
   let a: int[] = [1, 2];
   let b: int[] = push(a, 3);
   return "a_after=" + str(a) + " b=" + str(b) + " shared=" + str(len(a) == len(b));
 }
 
-// ⑨ '/' 恒 float：整数除法结果仍带小数。
+// ⑨ '/' is always float: integer division keeps the fraction.
 func demo_float_div(): string {
   let r = 7 / 2;
   return "7/2=" + str(r) + " is_float=" + str(r > 3.0 and r < 4.0);
 }
 
-// ⑩ 内建 HTTP 服务：server{} + run() 能力声明（实际监听见 server.lume）。
+// ⑩ builtin HTTP server: server{} + run() capability (actually listening in server.lume).
 func demo_server(): string {
-  return "server { port/docroot } + run() 内建·本模块可被 HTTP 路由调用";
+  return "server { port/docroot } + run() builtin·callable from HTTP routes here";
 }
 
-// ⑪ 内建 HTTP 客户端：http_get（解释器内建·编译后端未接·SSRF 闸门拒私有地址）。
-// 注：demo 不实际调用 http_get——它是解释器内建，文本/LLVM 后端无内建表条目；
-// 实际调用在解释器运行（server 用解释器）演示 SSRF 闸门。三后端一致性由此保持。
+// ⑪ builtin HTTP client: http_get (interpreter-only builtin·SSRF gate rejects
+// private addresses). Note: the demo does NOT call http_get — it has no
+// compiled-backend entry; the actual call runs on the interpreter (the
+// server uses the interpreter) demonstrating the SSRF gate. This keeps the
+// three-backend consistency intact.
 func demo_http_get(): string {
-  return "http_get(url, opts) 解释器内建·SSRF 闸门拒私有地址·编译后端未接（边界）";
+  return "http_get(url, opts) interpreter builtin·SSRF gate rejects private addrs·compiled backends lack it (boundary)";
 }
 
-// ⑫ C kernel 内建 matmul（墙 3·三后端共享·严格 FP 逐位一致）。
+// ⑫ C kernel matmul (wall 3·three-backend shared·strict FP bit-exact).
 func demo_matmul(): string {
   let A = [[1.0, 2.0], [3.0, 4.0]];
   let B = [[5.0, 6.0], [7.0, 8.0]];
   return "matmul=" + str(matmul(A, B));
 }
 
-// ---- 收集器 ----
-
-export func feature_list_len(): int {
-  return len(feature_list());
-}
+// ---- collector ----
 
 export func feature_list() {
   let out = [];
-  out = push(out, { name: "static typing & inference", desc: "类型标注 + let 推断 + int→float 宽化", demo: demo_types(), status: "ok" });
-  out = push(out, { name: "enum + match", desc: "代数数据类型·穷尽匹配·模式绑定", demo: demo_enum(), status: "ok" });
-  out = push(out, { name: "higher-order + trailing closure", desc: "map/filter/reduce·尾随闭包", demo: demo_hof(), status: "ok" });
-  out = push(out, { name: "range", desc: "整数序列·迭代", demo: demo_range(), status: "ok" });
-  out = push(out, { name: "Result + ?", desc: "错误传播·? 解包 err 上抛", demo: demo_result(), status: "ok" });
-  out = push(out, { name: "string cast & concat", desc: "str/int/float + map 访问器", demo: demo_string(), status: "ok" });
-  out = push(out, { name: "module import", desc: "import as 别名·跨模块成员调用", demo: demo_module(), status: "ok" });
-  out = push(out, { name: "list reference semantics", desc: "list 可变容器·push 原地追加·返回同一引用（实测·非值语义）", demo: demo_list_sem(), status: "ok" });
-  out = push(out, { name: "float division", desc: "'/' 恒 float·整数除法不截断", demo: demo_float_div(), status: "ok" });
-  out = push(out, { name: "builtin HTTP server", desc: "server{} + run()·docroot 静态服务", demo: demo_server(), status: "ok" });
-  out = push(out, { name: "builtin HTTP client", desc: "http_get·SSRF 闸门拒私有地址", demo: demo_http_get(), status: "ok" });
-  out = push(out, { name: "C kernel matmul", desc: "墙 3·三后端逐位一致·12×", demo: demo_matmul(), status: "ok" });
+  out = push(out, { name: "static typing & inference", desc: "type annotations + let inference + int->float widening", demo: demo_types(), status: "ok" });
+  out = push(out, { name: "enum + match", desc: "algebraic data types·exhaustive match·pattern binding", demo: demo_enum(), status: "ok" });
+  out = push(out, { name: "higher-order + trailing closure", desc: "map/filter/reduce·trailing closures", demo: demo_hof(), status: "ok" });
+  out = push(out, { name: "range", desc: "integer sequences·iteration", demo: demo_range(), status: "ok" });
+  out = push(out, { name: "Result + ?", desc: "error propagation·? unwraps ok·err propagates", demo: demo_result(), status: "ok" });
+  out = push(out, { name: "string cast & concat", desc: "str/int/float + map accessor", demo: demo_string(), status: "ok" });
+  out = push(out, { name: "module import", desc: "import as alias·cross-module member calls", demo: demo_module(), status: "ok" });
+  out = push(out, { name: "list reference semantics", desc: "list is a mutable container·push appends in place (measured·not value semantics)", demo: demo_list_sem(), status: "ok" });
+  out = push(out, { name: "float division", desc: "'/' is always float·integer division keeps fraction", demo: demo_float_div(), status: "ok" });
+  out = push(out, { name: "builtin HTTP server", desc: "server{} + run()·docroot static serving", demo: demo_server(), status: "ok" });
+  out = push(out, { name: "builtin HTTP client", desc: "http_get·SSRF gate rejects private addresses", demo: demo_http_get(), status: "ok" });
+  out = push(out, { name: "C kernel matmul", desc: "wall 3·three-backend bit-exact·12x", demo: demo_matmul(), status: "ok" });
   return out;
 }
-
-// ---- 独立运行：打印文本版（被 import 时不执行——顶层仅函数定义） ----

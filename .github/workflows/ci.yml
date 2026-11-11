@@ -1,6 +1,6 @@
-# GitHub Actions CI —— lume-showcase。
-# 依赖 erishen/lume-core（公共 repo）源码构建；跑 lume-core 门禁 + showcase
-# 三后端 smoke + 前端 build + Docker 镜像构建。
+# GitHub Actions CI for lume-showcase.
+# Builds erishen/lume-core (public repo) from source; runs lume-core gates +
+# showcase 3-backend smoke + frontend build + Docker image build.
 name: ci
 
 on:
@@ -33,7 +33,7 @@ jobs:
         working-directory: lume-core
         run: make lib-backends lib-compat
 
-      - name: showcase smoke (interp + text backend·byte-identical)
+      - name: showcase smoke (interp + text backend, byte-identical)
         working-directory: lume-showcase
         run: bash tests/smoke.sh
 
@@ -45,6 +45,6 @@ jobs:
 
       - name: docker image build
         run: |
-          # context 是 checkout 根（lume-showcase + lume-core 兄弟）·裁剪上下文
+          # context is the checkout root (lume-showcase + lume-core siblings) · slim the context
           printf '/lume-showcase/.git/\n/lume-showcase/web/node_modules/\n/lume-showcase/web/dist/\n/lume-core/.git/\n/lume-core/build/\n/lume-core/bin/\n' > .dockerignore
           docker build -f lume-showcase/Dockerfile -t lume-showcase .

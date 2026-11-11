@@ -68,8 +68,8 @@ function Apps({ data }: { data: AppItem[] }) {
   );
 }
 
-// 性能对比（墙 1/2/3·lume-core 实测）：bar 宽度按 log10(speedup) 缩放，
-// 避免 207× 与 1.02× 在线性刻度下失衡。
+// Performance comparison (wall 1/2/3 · lume-core measured): bar width is
+// log10(speedup)-scaled so 207x and 1.02x stay balanced on a linear axis.
 function Performance({ data }: { data: Bench[] }) {
   const maxLog = Math.log10(Math.max(...data.map((d) => d.speedup)));
   return (

@@ -1,38 +1,40 @@
-// server.lume —— lume-core HTTP 服务：/api/features + /api/algorithms + /api/apps
-// + 静态服务 web/dist（前端 build 产物）。用 lume-core 内建 server{} + run()：
+// server.lume — lume-core HTTP service: /api/features + /api/algorithms +
+// /api/apps + static serving of web/dist (frontend build output). Uses the
+// lume-core builtin server{} + run():
 //
-//   运行：bin/lume-core server.lume     （cwd = 本仓库根）
-//   验证：curl http://127.0.0.1:18793/api/health
+//   run:   bin/lume-core server.lume     (cwd = repo root)
+//   check: curl http://127.0.0.1:18793/api/health
 //
-// 前端开发模式（Vite :5173）走 proxy /api -> 127.0.0.1:18793，生产用 docroot。
+// Frontend dev mode (Vite :5173) proxies /api -> 127.0.0.1:18793; production
+// uses docroot.
 
 import "./src/features.lume" as feats;
 import "./src/algorithms.lume" as algos;
 
-// ---- public 应用清单（中性·不含行业/专有信息） ----
+// ---- public application catalog (neutral · no industry/proprietary info) ----
 func apps() {
   let out = [];
-  out = push(out, { name: "HTTP API / Web 服务", desc: "内建 server{} + run()·docroot 静态服务·SSE·路由闭包", libs: "lume-core 内建", status: "ok" });
-  out = push(out, { name: "科学计算 CLI", desc: "数值积分/插值/线性求解/特征值（sci·linalg 库）", libs: "sci.lume, linalg.lume", status: "ok" });
-  out = push(out, { name: "ML 训练与推理", desc: "MLP/注意力/聚类/降维·纯 .lume 训练循环（ml 库）", libs: "ml.lume", status: "ok" });
-  out = push(out, { name: "PINN 求解器", desc: "物理约束神经求解·解析梯度（墙 1·200×）", libs: "pinn.lume", status: "ok" });
-  out = push(out, { name: "偏微分方程数值解", desc: "有限差分·热方程/波动（pde 库）", libs: "pde.lume", status: "ok" });
-  out = push(out, { name: "数据管道 / 批处理", desc: "map/filter/reduce·list 引用语义·文件内建", libs: "lume 内建", status: "ok" });
-  out = push(out, { name: "静态站点 + API 同进程", desc: "docroot 静态 + 路由 API·单一二进制进程", libs: "server{}", status: "ok" });
-  out = push(out, { name: "MCP 服务器", desc: "mcp_fs / mcp_math 先例·模型上下文协议", libs: "lume-core 内建", status: "ok" });
-  out = push(out, { name: "图 / 信号 / 统计工具", desc: "图遍历·信号平滑·分布散度（graph·sig·dist 库）", libs: "graph.lume, sig.lume, dist.lume", status: "ok" });
-  out = push(out, { name: "SQLite 数据存储", desc: "sql_query 内建·结构化查询", libs: "lume-core 内建", status: "ok" });
-  out = push(out, { name: "加密 / 哈希工具", desc: "crypt_sha512·hmac_sha256·spawn 子进程", libs: "lume-core 内建", status: "ok" });
-  out = push(out, { name: "优化 / 运筹", desc: "梯度下降/牛顿法/线搜索（optim 库）", libs: "optim.lume", status: "ok" });
+  out = push(out, { name: "HTTP API / Web service", desc: "builtin server{} + run() · docroot static serving · SSE · route closures", libs: "lume-core builtin", status: "ok" });
+  out = push(out, { name: "scientific computing CLI", desc: "numerical integration/interp/linear solve/eigenvalues (sci · linalg libs)", libs: "sci.lume, linalg.lume", status: "ok" });
+  out = push(out, { name: "ML training & inference", desc: "MLP/attention/clustering/dimensionality · pure .lume training loops (ml lib)", libs: "ml.lume", status: "ok" });
+  out = push(out, { name: "PINN solver", desc: "physics-constrained neural solving · analytic gradient (wall 1 · 200x)", libs: "pinn.lume", status: "ok" });
+  out = push(out, { name: "PDE numerical solver", desc: "finite difference · heat/wave (pde lib)", libs: "pde.lume", status: "ok" });
+  out = push(out, { name: "data pipeline / batch", desc: "map/filter/reduce · list reference semantics · file builtins", libs: "lume builtin", status: "ok" });
+  out = push(out, { name: "static site + API in one process", desc: "docroot static + route API · single binary process", libs: "server{}", status: "ok" });
+  out = push(out, { name: "MCP server", desc: "mcp_fs / mcp_math precedent · Model Context Protocol", libs: "lume-core builtin", status: "ok" });
+  out = push(out, { name: "graph / signal / statistics tools", desc: "graph traversal · signal smoothing · distribution divergence (graph · sig · dist libs)", libs: "graph.lume, sig.lume, dist.lume", status: "ok" });
+  out = push(out, { name: "SQLite data storage", desc: "sql_query builtin · structured queries", libs: "lume-core builtin", status: "ok" });
+  out = push(out, { name: "crypto / hash tools", desc: "crypt_sha512 · hmac_sha256 · spawn subprocess", libs: "lume-core builtin", status: "ok" });
+  out = push(out, { name: "optimization / operations research", desc: "gradient descent/Newton/line search (optim lib)", libs: "optim.lume", status: "ok" });
   return out;
 }
 
-// ---- 性能对比（lume-core 实测·墙1/2/3·中性数据） ----
+// ---- performance comparison (lume-core measured · wall 1/2/3 · neutral data) ----
 func bench() {
   let out = [];
-  out = push(out, { name: "wall 1 · PINN analytic gradient", from: "4.5 min (numeric)", to: "1.3 s (analytic)", speedup: 207, note: "训练·编译后端·loss 0.573 → 0.00224·相对 L2 1.43%" });
-  out = push(out, { name: "wall 2 · codegen vs C", from: "1.00× (C)", to: "1.02× (lume)", speedup: 1.02, note: "标量循环·codegen 已达 C 速" });
-  out = push(out, { name: "wall 3 · blas C kernel", from: "0.60 s (pure lume)", to: "0.05 s (C kernel)", speedup: 12, note: "128×128·30 次·逐位一致" });
+  out = push(out, { name: "wall 1 · PINN analytic gradient", from: "4.5 min (numeric)", to: "1.3 s (analytic)", speedup: 207, note: "training · compiled backends · loss 0.573 -> 0.00224 · rel L2 1.43%" });
+  out = push(out, { name: "wall 2 · codegen vs C", from: "1.00x (C)", to: "1.02x (lume)", speedup: 1.02, note: "scalar loop · codegen reaches C speed" });
+  out = push(out, { name: "wall 3 · blas C kernel", from: "0.60 s (pure lume)", to: "0.05 s (C kernel)", speedup: 12, note: "128x128 · 30 runs · bit-identical" });
   return out;
 }
 
@@ -60,7 +62,8 @@ get "/api/bench", (req) => {
   return json(stringify(bench()));
 };
 
-// 绑定地址默认 127.0.0.1（本地安全）；容器/跨机用 LUME_BIND=0.0.0.0 覆盖。
+// Bind address defaults to 127.0.0.1 (local-safe); override for container or
+// cross-host access with LUME_BIND=0.0.0.0.
 let bind_host: string = "127.0.0.1";
 let bind_env = env("LUME_BIND");
 if (bind_env != null) { bind_host = str(bind_env); }

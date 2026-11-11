@@ -1,7 +1,8 @@
 #!/bin/bash
-# tests/smoke.sh —— showcase 门禁：server.lume 在解释器 + 文本后端都能起，
-# 四个 API 数量断言 + 静态服务 + 三后端输出逐字节一致（interp vs text）。
-# 用法：LUME_BIN=../lume-core/bin/lume-core bash tests/smoke.sh
+# tests/smoke.sh — showcase gate: server.lume starts on both the interpreter
+# and the text backend, four API count assertions + static service + byte-
+# identical output between backends (interp vs text).
+# Usage: LUME_BIN=../lume-core/bin/lume-core bash tests/smoke.sh
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BIN="${LUME_BIN:-$ROOT/../lume-core/bin/lume-core}"
@@ -11,7 +12,7 @@ SRV=""
 cleanup() { [ -n "$SRV" ] && kill "$SRV" 2>/dev/null; rm -rf "$TMP"; }
 trap cleanup EXIT
 
-assert_count() {  # $1=endpoint $2=expected
+assert_count() {  # $1=endpoint, $2=expected
   local n
   n=$(curl -s "http://127.0.0.1:$PORT/api/$1" | python3 -c "import json,sys; print(len(json.loads(json.load(sys.stdin)['body'])))")
   if [ "$n" = "$2" ]; then

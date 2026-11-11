@@ -1,12 +1,13 @@
-// src/algorithms.lume —— lume-core 算法现状演示模块（public·中性）。
-// 每个算法给 {name, lib, area, metric, desc, demo}：lib 是所属 lume-core 库，
-// metric 是实测数据（墙 1/2/3 战果），demo 是内联迷你演示（自包含·不依赖
-// lume-core/lib 相对路径——本仓库 clone 到任何位置都能跑）。
-// 被 server.lume import 提供 /api/algorithms。
+// src/algorithms.lume — lume-core algorithm status demo module (public, neutral).
+// Each algorithm carries {name, lib, area, metric, desc, demo}: lib is the
+// owning lume-core library, metric is measured data (wall 1/2/3 results),
+// demo is an inline mini demo (self-contained, does not depend on
+// lume-core/lib relative paths — this repo runs from any clone location).
+// Imported by server.lume for /api/algorithms.
 
-// ---- 迷你演示（自包含·每个返回结果字符串） ----
+// ---- mini demos (self-contained, each returns a result string) ----
 
-// ① 稠密矩阵乘法（对应 blas C kernel matmul·墙 3·12×）。
+// ① dense matmul (corresponds to the blas C kernel matmul · wall 3 · 12x).
 func demo_matmul(): string {
   let A = [[1.0, 2.0], [3.0, 4.0]];
   let B = [[5.0, 6.0], [7.0, 8.0]];
@@ -24,7 +25,7 @@ func demo_matmul(): string {
   return "matmul=" + str(out);
 }
 
-// ② 矩阵转置 + 行列式（linalg）。
+// ② matrix transpose + determinant (linalg).
 func demo_linalg(): string {
   let A = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]];
   let T = [];
@@ -33,13 +34,13 @@ func demo_linalg(): string {
     for (let i = 0; i < len(A); i = i + 1) { col = push(col, A[i][j]); }
     T = push(T, col);
   }
-  // 2×2 行列式
+  // 2x2 determinant
   let M = [[2.0, 1.0], [1.0, 3.0]];
   let det = M[0][0] * M[1][1] - M[0][1] * M[1][0];
   return "transpose=" + str(T) + " det=" + str(det);
 }
 
-// ③ 数值积分：梯形 ∫₀¹x²dx=1/3（sci）。
+// ③ numerical integration: trapezoid of x^2 over [0,1] = 1/3 (sci).
 func demo_integral(): string {
   let xs = [0.0, 0.25, 0.5, 0.75, 1.0];
   let ys = map((x) => x * x, xs);
@@ -50,7 +51,7 @@ func demo_integral(): string {
   return "trapz(x^2,0..1)=" + str(acc);
 }
 
-// ④ 梯度下降：min (x-3)²（optim）。
+// ④ gradient descent: minimize (x-3)^2 (optim).
 func demo_gd(): string {
   let x = 0.0;
   let lr = 0.1;
@@ -61,14 +62,14 @@ func demo_gd(): string {
   return "gd_min=(x-3)^2 -> x=" + str(x);
 }
 
-// ⑤ 两层 MLP 前向（ml·tanh/sigmoid 激活）。
+// ⑤ two-layer MLP forward pass (ml · tanh/sigmoid activations).
 func demo_mlp(): string {
   let W1 = [[0.5, -0.3], [0.2, 0.8]];
   let b1 = [0.1, -0.2];
   let W2 = [[0.7, -0.5]];
   let b2 = [0.05];
   let x = [1.0, -1.0];
-  // 隐藏层
+  // hidden layer
   let h: float[] = [];
   for (let j = 0; j < len(W1); j = j + 1) {
     let s = b1[j];
@@ -84,17 +85,17 @@ func _sigmoid(z: float): float {
   return 1.0 / (1.0 + exp(0.0 - z));
 }
 
-// ⑥ PINN 一次前向（pinn·热方程残差·墙 1 解析梯度）。
+// ⑥ PINN single forward pass (pinn · heat-equation residual · wall 1 analytic gradient).
 func demo_pinn(): string {
-  // 单输入网络 u(x)=tanh(w·x+b)·取 w=1,b=0（解析可算）。
+  // single-input net u(x)=tanh(w*x+b) with w=1,b=0 (analytically computable).
   let w = 1.0; let b = 0.0;
   let x = 0.5;
   let u = tanh(w * x + b);
-  let du_dx = (1.0 - u * u) * w;         // 解析导数（tanh'=1-tanh²）
+  let du_dx = (1.0 - u * u) * w;         // analytic derivative (tanh'=1-tanh^2)
   return "u(0.5)=" + str(u) + " du/dx=" + str(du_dx);
 }
 
-// ⑦ k-means 一次迭代（ml·自包含）。
+// ⑦ k-means single iteration (ml · self-contained).
 func demo_kmeans(): string {
   let pts = [[0.0, 0.0], [1.0, 1.0], [8.0, 8.0], [9.0, 9.0]];
   let c0 = [0.5, 0.5];
@@ -110,12 +111,12 @@ func demo_kmeans(): string {
   return "clusters=" + str(g0) + "+" + str(g1) + " c0=(" + str(s0x / (g0 * 1.0)) + "," + str(s0y / (g0 * 1.0)) + ")";
 }
 
-// ⑧ 有限差分求解 1D 热方程（pde·显式格式）。
+// ⑧ finite-difference solve of the 1D heat equation (pde · explicit scheme).
 func demo_pde(): string {
   let N = 8; let dx = 1.0 / (N * 1.0); let dt = 0.4 * dx * dx;
   let u: float[] = [];
   for (let i = 0; i <= N; i = i + 1) { u = push(u, 0.0); }
-  u = _set_f(u, int(N / 2), 1.0);              // 初始脉冲（N/2 恒 float·显式 int()）
+  u = _set_f(u, int(N / 2), 1.0);              // initial pulse (N/2 is float · explicit int())
   for (let step = 0; step < 5; step = step + 1) {
     let un: float[] = [];
     for (let i = 0; i <= N; i = i + 1) { un = push(un, u[i]); }
@@ -132,7 +133,7 @@ func _set_f(lst: float[], i: int, v: float): float[] { let out: float[] = []; fo
 func _set_i(lst: int[], i: int, v: int): int[] { let out: int[] = []; for (let k = 0; k < len(lst); k = k + 1) { if (k == i) { out = push(out, v); } else { out = push(out, lst[k]); } } return out; }
 func _max(lst: float[]): float { let m: float = lst[0]; for (let k = 1; k < len(lst); k = k + 1) { if (lst[k] > m) { m = lst[k]; } } return m; }
 
-// ⑨ KL 散度（dist）。
+// ⑨ KL divergence (dist).
 func demo_kl(): string {
   let p = [0.5, 0.5];
   let q = [0.9, 0.1];
@@ -141,20 +142,20 @@ func demo_kl(): string {
   return "kl(p||q)=" + str(kl);
 }
 
-// ⑩ 复数运算（complex·i²=-1）。
+// ⑩ complex arithmetic (complex · i^2 = -1).
 func demo_complex(): string {
   let a = 1.0; let b = 2.0;             // z = 1+2i
-  let re = a * a - b * b; let im = 2.0 * a * b;   // z²
+  let re = a * a - b * b; let im = 2.0 * a * b;   // z^2
   return "z^2=(1+2i)^2=" + str(re) + "+" + str(im) + "i";
 }
 
-// ⑪ 信号平滑（sig·滑动平均）。
+// ⑪ signal smoothing (sig · moving average).
 func demo_sig(): string {
   let xs = [1.0, 2.0, 3.0, 4.0, 5.0];
   let k = 3;
   let out: float[] = [];
   for (let i = 0; i < len(xs); i = i + 1) {
-    let lo = i - int(k / 2); let hi = i + int(k / 2);   // '/' 恒 float·显式 int()
+    let lo = i - int(k / 2); let hi = i + int(k / 2);   // '/' is float · explicit int()
     let s = 0.0; let cnt = 0;
     for (let j = lo; j <= hi; j = j + 1) {
       if (j >= 0 and j < len(xs)) { s = s + xs[j]; cnt = cnt + 1; }
@@ -164,9 +165,9 @@ func demo_sig(): string {
   return "smooth=" + str(out);
 }
 
-// ⑫ 图遍历（graph·BFS 最短步数）。
+// ⑫ graph traversal (graph · BFS shortest hop count).
 func demo_graph(): string {
-  // 邻接表：0-1-2-3 链
+  // adjacency list: 0-1-2-3 chain
   let adj = [[1], [0, 2], [1, 3], [2]];
   let start = 0;
   let dist: int[] = _init_dist(len(adj));
@@ -189,21 +190,21 @@ func demo_graph(): string {
 
 func _init_dist(n: int): int[] { let out: int[] = []; for (let i = 0; i < n; i = i + 1) { out = push(out, -1); } return out; }
 
-// ---- 收集器 ----
+// ---- collector ----
 
 export func algorithm_list() {
   let out = [];
-  out = push(out, { name: "dense matmul (C kernel)", lib: "blas.lume", area: "linear algebra / wall 3", metric: "128×128·30 次 0.05s vs 0.60s ≈ 12×·逐位一致", desc: "内建 matmul·严格 FP（k 升序·无 FMA 紧缩）·三后端共享", demo: demo_matmul() });
-  out = push(out, { name: "PINN 解析梯度", lib: "pinn.lume", area: "scientific ML / wall 1", metric: "训练 4.5min→1.3s ≈ 200×·loss 0.573→0.00224·相对 L2 1.43%", desc: "伴随 dual 反扫（无磁带分配）·Adam 换解析梯度", demo: demo_pinn() });
-  out = push(out, { name: "MLP 反向传播", lib: "ml.lume", area: "deep learning", metric: "v0.3.0 同批落地·解析梯度", desc: "两层 MLP·tanh/sigmoid·BCE 损失", demo: demo_mlp() });
-  out = push(out, { name: "linear algebra (LU/QR/eig/SVD)", lib: "linalg.lume", area: "linear algebra", metric: "纯 lume·legacy 0.12.2 可 import", desc: "矩阵构造/转置/加减乘/迹/行列式/求解/逆/LU/QR/幂法特征/SVD", demo: demo_linalg() });
-  out = push(out, { name: "numerical integration", lib: "sci.lume", area: "scientific computing", metric: "trapz/simpson·1/3 精确", desc: "积分/插值/散度/互信息/统计", demo: demo_integral() });
-  out = push(out, { name: "gradient descent", lib: "optim.lume", area: "optimization", metric: "50 步收敛 x→3", desc: "梯度下降/牛顿法/线搜索", demo: demo_gd() });
-  out = push(out, { name: "k-means", lib: "ml.lume", area: "clustering", metric: "一次迭代·簇心更新", desc: "无监督·kNN/k-means 同族", demo: demo_kmeans() });
-  out = push(out, { name: "1D heat equation (FDM)", lib: "pde.lume", area: "PDE", metric: "显式格式·稳定条件 dt≤0.5dx²", desc: "有限差分·边界/初值", demo: demo_pde() });
-  out = push(out, { name: "KL divergence", lib: "dist.lume", area: "probability", metric: "KL(p||q)≥0 验证", desc: "分布散度/熵/统计检验", demo: demo_kl() });
-  out = push(out, { name: "complex arithmetic", lib: "complex.lume", area: "algebra", metric: "i²=-1·z² 复乘", desc: "复数四则/模/辐角", demo: demo_complex() });
-  out = push(out, { name: "signal smoothing", lib: "sig.lume", area: "signal processing", metric: "滑动平均·边界处理", desc: "平滑/差分/频谱基础", demo: demo_sig() });
-  out = push(out, { name: "graph BFS", lib: "graph.lume", area: "graph", metric: "最短步数·队列", desc: "遍历/最短路/连通性", demo: demo_graph() });
+  out = push(out, { name: "dense matmul (C kernel)", lib: "blas.lume", area: "linear algebra / wall 3", metric: "128x128 · 30 runs 0.05s vs 0.60s ~ 12x · bit-identical", desc: "builtin matmul · strict FP (k ascending · no FMA contraction) · shared across 3 backends", demo: demo_matmul() });
+  out = push(out, { name: "PINN analytic gradient", lib: "pinn.lume", area: "scientific ML / wall 1", metric: "train 4.5min -> 1.3s ~ 200x · loss 0.573 -> 0.00224 · rel L2 1.43%", desc: "adjoint dual reverse sweep (no tape alloc) · Adam replaced by analytic gradient", demo: demo_pinn() });
+  out = push(out, { name: "MLP backprop", lib: "ml.lume", area: "deep learning", metric: "landed with v0.3.0 · analytic gradient", desc: "two-layer MLP · tanh/sigmoid · BCE loss", demo: demo_mlp() });
+  out = push(out, { name: "linear algebra (LU/QR/eig/SVD)", lib: "linalg.lume", area: "linear algebra", metric: "pure lume · legacy 0.12.2 importable", desc: "matrix construct/transpose/add/sub/mul/trace/det/solve/inv/LU/QR/power eig/SVD", demo: demo_linalg() });
+  out = push(out, { name: "numerical integration", lib: "sci.lume", area: "scientific computing", metric: "trapz/simpson · exact 1/3", desc: "integral/interp/divergence/mutual-info/statistics", demo: demo_integral() });
+  out = push(out, { name: "gradient descent", lib: "optim.lume", area: "optimization", metric: "converges x->3 in 50 steps", desc: "gradient descent/Newton/line search", demo: demo_gd() });
+  out = push(out, { name: "k-means", lib: "ml.lume", area: "clustering", metric: "single iteration · centroid update", desc: "unsupervised · kNN/k-means family", demo: demo_kmeans() });
+  out = push(out, { name: "1D heat equation (FDM)", lib: "pde.lume", area: "PDE", metric: "explicit scheme · stability dt<=0.5dx^2", desc: "finite difference · boundary/initial conditions", demo: demo_pde() });
+  out = push(out, { name: "KL divergence", lib: "dist.lume", area: "probability", metric: "verifies KL(p||q)>=0", desc: "distribution divergence/entropy/statistical tests", demo: demo_kl() });
+  out = push(out, { name: "complex arithmetic", lib: "complex.lume", area: "algebra", metric: "i^2=-1 · z^2 complex multiply", desc: "complex add/sub/mul/div/abs/arg", demo: demo_complex() });
+  out = push(out, { name: "signal smoothing", lib: "sig.lume", area: "signal processing", metric: "moving average · boundary handling", desc: "smoothing/diff/spectral basics", demo: demo_sig() });
+  out = push(out, { name: "graph BFS", lib: "graph.lume", area: "graph", metric: "shortest hop count · queue", desc: "traversal/shortest path/connectivity", demo: demo_graph() });
   return out;
 }

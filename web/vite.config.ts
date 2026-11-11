@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// 开发模式：/api 代理到 lume-core 后端（bin/lume-core server.lume·:18793）。
-// 生产：web/dist 由 lume-core server docroot 静态服务（同源·无 CORS）。
+// Dev mode: proxy /api to the lume-core backend (bin/lume-core server.lume · :18793).
+// Production: web/dist is served statically by the lume-core server docroot (same-origin · no CORS).
 export default defineConfig({
   plugins: [react()],
   server: {

@@ -1,16 +1,16 @@
-# docker compose 一键起 lume-showcase。
-# 用法（showcase 根）：docker compose up -d --build
-#   或从 work/lume：docker compose -f lume-showcase/compose.yml up -d --build
-# 验证：curl http://127.0.0.1:18793/api/health
+# docker compose one-command start of lume-showcase.
+# Usage (showcase root): docker compose up -d --build
+#   or from work/lume: docker compose -f lume-showcase/compose.yml up -d --build
+# Check: curl http://127.0.0.1:18793/api/health
 services:
   showcase:
     build:
-      context: ..            # work/lume（lume-core + lume-showcase 父目录）
+      context: ..            # work/lume (parent of lume-core + lume-showcase)
       dockerfile: lume-showcase/Dockerfile
     image: lume-showcase
     ports:
       - "18793:18793"
-    read_only: true          # server 不写文件（/tmp 唯一可写挂载点）
+    read_only: true          # server writes no files (/tmp is the only writable mount)
     tmpfs:
       - /tmp
     mem_limit: 256m

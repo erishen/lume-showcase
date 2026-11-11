@@ -1,6 +1,6 @@
 import type { Algorithm, AppItem, Bench, Feature } from './types';
 
-// lume-core 后端返回 { status, type, body }，body 是 JSON 字符串。
+// The lume-core backend returns { status, type, body } where body is a JSON string.
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(path);
   if (!res.ok) throw new Error(`${path} -> ${res.status}`);
