@@ -80,4 +80,38 @@ else
   echo "skip text backend (compile failed: $(head -1 "$TMP/compile.log"))"
 fi
 
+# byte_identical <backend> — diff every saved interp_* against <backend>_*
+byte_identical() {
+  local backend="$1" ok=1
+  for ep in features algorithms apps agent bench; do
+    if diff -q "$TMP/interp_$ep.json" "$TMP/${backend}_$ep.json" >/dev/null 2>&1; then
+      echo "ok   interp/$backend $ep byte-identical"
+    else
+      echo "FAIL $ep drift interp/$backend"; ok=0
+    fi
+  done
+  [ "$ok" = 1 ] || exit 1
+}
+
+echo "=== llvm backend server ==="
+if "$BIN" --compile-llvm -o "$TMP/showcase_l.exe" "$ROOT/server.lume" 2>"$TMP/compile_l.log"; then
+  "$TMP/showcase_l.exe" > "$TMP/llvm.log" 2>&1 & SRV=$!
+  wait_health
+  assert_count features 12
+  assert_count algorithms 12
+  assert_count apps 12
+  assert_count agent 3
+  assert_count bench 3
+  curl -s "http://127.0.0.1:$PORT/api/features" > "$TMP/llvm_features.json"
+  curl -s "http://127.0.0.1:$PORT/api/algorithms" > "$TMP/llvm_algorithms.json"
+  curl -s "http://127.0.0.1:$PORT/api/apps" > "$TMP/llvm_apps.json"
+  curl -s "http://127.0.0.1:$PORT/api/agent" > "$TMP/llvm_agent.json"
+  curl -s "http://127.0.0.1:$PORT/api/bench" > "$TMP/llvm_bench.json"
+  kill "$SRV" 2>/dev/null; SRV=""
+  byte_identical llvm
+  echo "ok   llvm backend server"
+else
+  echo "skip llvm backend (compile failed: $(head -1 "$TMP/compile_l.log"))"
+fi
+
 echo "PASS showcase smoke"

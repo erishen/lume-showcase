@@ -125,13 +125,13 @@ bash tests/smoke.sh        # server (interp + text backend) API counts + byte-id
 ```
 
 `tests/smoke.sh` asserts all five API endpoints, the static index, that the
-interpreter and text-backend servers produce **byte-identical** JSON for every
-endpoint, and that each item's English name is covered by both the `zhDict`
-translation and a `content.ts` detail entry (a new feature/app that is not
-translated or lacks a detail panel fails the run — `tests/check_coverage.py`).
-The LLVM backend also compiles and runs `server.lume` locally (when libLLVM is
-present); the container image builds without it (interpreter + text backends
-only).
+interpreter, text-backend **and** libLLVM-backend servers produce
+**byte-identical** JSON for every endpoint, and that each item's English name
+is covered by both the `zhDict` translation and a `content.ts` detail entry
+(a new feature/app that is not translated or lacks a detail panel fails the
+run — `tests/check_coverage.py`). The LLVM backend runs only when lume-core
+was built with libLLVM (the container image builds interpreter + text
+backends only).
 
 A GitHub Actions workflow (`.github/workflows/ci.yml`) is pre-wired for when
 this repo is pushed: it builds `erishen/lume-core`, runs its gates, the
