@@ -65,3 +65,11 @@ header p { margin: 0 0 24px; color: var(--muted); }
 .loading, .error { color: var(--muted); padding: 24px; text-align: center; }
 .error { color: #ff7a7a; }
 footer { margin-top: 40px; color: var(--muted); font-size: 12.5px; line-height: 1.7; border-top: 1px solid var(--border); padding-top: 16px; }
+footer .project-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+footer .repo {
+  display: inline-block; font-size: 12px; text-decoration: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--accent); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 10px; background: var(--panel2);
+}
+footer .repo:hover { border-color: var(--accent); background: var(--panel); }

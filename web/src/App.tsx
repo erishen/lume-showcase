@@ -350,6 +350,14 @@ export default function App() {
 
       <footer>
         <b>{f.stack}</b>: {f.body}<code>{f.code}</code>{f.tail}
+        <div className="project-links">
+          <a className="repo" href="https://github.com/erishen/lume" target="_blank" rel="noopener noreferrer">
+            github.com/erishen/lume ↗
+          </a>
+          <a className="repo" href="https://github.com/erishen/lume-core" target="_blank" rel="noopener noreferrer">
+            github.com/erishen/lume-core ↗
+          </a>
+        </div>
       </footer>
     </div>
   );
