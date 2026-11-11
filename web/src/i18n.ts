@@ -246,6 +246,20 @@ const zhDict: Record<string, Fields> = {
     to: '0.05 秒（C 内核）',
     note: '128×128 · 30 次 · 逐位一致',
   },
+
+  // ---- agent (src/agent.lume) ----
+  'agent loop (plan -> act -> observe -> refine)': {
+    name: '智能体循环（规划 → 执行 → 观察 → 优化）',
+    desc: '自治任务循环 · 确定性策略',
+  },
+  'tool registry & dispatch': {
+    name: '工具注册表与调度',
+    desc: '名称 → 工具查找 · 确定性执行器',
+  },
+  'runtime wiring (catalog · tools · mcps · skills)': {
+    name: '运行时接线（catalog · tools · mcps · skills）',
+    desc: 'lume-core 智能体内省 + LLM 钩子（外部/可选）',
+  },
 };
 
 // Localize an API item: English is the source of truth; zh overrides fields.
@@ -263,8 +277,8 @@ export const ui = {
     zh: 'lume 语言特性 · 算法现状 · 公共应用全景 — 由 lume-core 提供',
   },
   tabs: {
-    en: ['Language features', 'Algorithms', 'Applications', 'Performance'],
-    zh: ['语言特性', '算法', '应用', '性能'],
+    en: ['Language features', 'Algorithms', 'Applications', 'Agent', 'Performance'],
+    zh: ['语言特性', '算法', '应用', '智能体', '性能'],
   },
   loading: { en: 'loading…', zh: '加载中…' },
   toggleLabel: { en: '中文', zh: 'EN' },

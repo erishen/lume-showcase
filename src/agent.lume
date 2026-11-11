@@ -1,0 +1,65 @@
+// src/agent.lume — self-contained agent-loop demo (public, neutral).
+// No external LLM call and no interpreter-only builtins (catalog/tools/mcps/
+// skills are interpreter-side; calling them would break the text/LLVM
+// backends). So the loop and a tiny tool registry are pure lume, keeping all
+// three backends byte-identical. The lume-core runtime agent framework is
+// described in the frontend detail content.
+
+// ---- tiny deterministic tool registry ----
+func _tool_square(x: float): float { return x * x; }
+func _tool_add(a: float, b: float): float { return a + b; }
+func _tool_double(x: float): float { return x * 2.0; }
+
+// dispatch by tool name (deterministic policy; unknown -> 0.0)
+func _tool_apply(name: string, x: float): float {
+  if (name == "square") { return _tool_square(x); }
+  if (name == "double") { return _tool_double(x); }
+  return 0.0;
+}
+
+// ① agent loop: plan -> act -> observe -> refine over a task list.
+func demo_agent_loop(): string {
+  let xs = [1.0, 2.0, 3.0];
+  let plan = "square -> accumulate";
+  let trace = "";
+  let acc = 0.0;
+  for (let i = 0; i < len(xs); i = i + 1) {
+    let x = xs[i];
+    let sq: float = _tool_square(x); // act (tool: square)
+    let prior = acc;               // observe
+    acc = _tool_add(acc, sq);      // refine (tool: add)
+    trace = trace + "step" + str(i) + "[sq(" + str(x) + ")=" + str(sq)
+          + " obs " + str(prior) + "->" + str(acc) + "]";
+    if (i < len(xs) - 1) { trace = trace + " "; }
+  }
+  return "agent(task=sum_squares, xs=[1,2,3]) plan=[" + plan
+       + "] trace={" + trace + "} final=" + str(acc);
+}
+
+// ② tool registry & dispatch by name (deterministic executor).
+func demo_tool_registry(): string {
+  let calls = ["square", "double", "square"];
+  let out = "";
+  for (let i = 0; i < len(calls); i = i + 1) {
+    let name = calls[i];
+    let r: float = _tool_apply(name, 2.0);
+    out = out + name + "(2.0)=" + str(r);
+    if (i < len(calls) - 1) { out = out + " "; }
+  }
+  return "dispatch(calls=[square,double,square]) = [" + out + "]";
+}
+
+// ③ runtime wiring (descriptive — catalog/tools/mcps/skills + LLM hook are
+// interpreter-side; the agent backend is external/optional, not called here).
+func demo_runtime_wiring(): string {
+  return "lume-core runtime: catalog()/tools()/mcps()/skills() introspection + LLM_API_URL/LLM_MODEL hook (agent backend external/optional — not called here)";
+}
+
+// ---- collector ----
+export func agent_list() {
+  let out = [];
+  out = push(out, { name: "agent loop (plan -> act -> observe -> refine)", desc: "autonomous cycle over a task list · deterministic policy", demo: demo_agent_loop() });
+  out = push(out, { name: "tool registry & dispatch", desc: "name -> tool lookup · deterministic executor", demo: demo_tool_registry() });
+  out = push(out, { name: "runtime wiring (catalog · tools · mcps · skills)", desc: "lume-core agent introspection + LLM hook (external/optional)", demo: demo_runtime_wiring() });
+  return out;
+}

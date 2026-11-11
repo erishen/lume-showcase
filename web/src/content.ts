@@ -341,6 +341,60 @@ return "bfs_dist_from_0=" + str(dist);`,
     ['BFS shortest hop count', 'Queue-based (FIFO)', 'Traversal / shortest path / connectivity'],
     ['BFS 最短步数', '队列（FIFO）', '遍历/最短路/连通性'],
   ),
+
+  // ---- agent (src/agent.lume) ----
+  'agent loop (plan -> act -> observe -> refine)': d(
+    'An agent is a plan -> act -> observe -> refine cycle. The demo picks a deterministic policy (square then accumulate), executes the tool per task, observes the running total, and refines — producing a full trace. Self-contained: no external LLM call.',
+    '智能体是「规划 → 执行 → 观察 → 优化」循环。demo 用确定性策略（先平方再累加），逐任务执行工具、观察累计值并优化，产出完整轨迹。自包含：不调外部 LLM。',
+    `let xs = [1.0, 2.0, 3.0];
+let plan = "square -> accumulate";
+let trace = "";  let acc = 0.0;
+for (let i = 0; i < len(xs); i = i + 1) {
+  let x = xs[i];
+  let sq: float = _tool_square(x);  // act (tool: square)
+  let prior = acc;                  // observe
+  acc = _tool_add(acc, sq);         // refine (tool: add)
+  trace = trace + "step" + str(i) + "[sq(" + str(x) + ")=" + str(sq)
+        + " obs " + str(prior) + "->" + str(acc) + "]";
+  if (i < len(xs) - 1) { trace = trace + " "; }
+}
+return "agent(task=sum_squares, xs=[1,2,3]) plan=[" + plan
+     + "] trace={" + trace + "} final=" + str(acc);`,
+    ['plan -> act -> observe -> refine', 'Deterministic policy (no external LLM)', 'Full trace + final result'],
+    ['规划 → 执行 → 观察 → 优化', '确定性策略（无外部 LLM）', '完整轨迹 + 最终结果'],
+  ),
+  'tool registry & dispatch': d(
+    'Tools are first-class: a registry maps a name to a callable and dispatch resolves it deterministically. This is the substrate an agent uses to choose and invoke capabilities.',
+    '工具是一等公民：注册表把名称映射到可调用项，调度确定性解析。这是智能体选择并调用能力的基础。',
+    `func _tool_apply(name: string, x: float): float {
+  if (name == "square") { return _tool_square(x); }
+  if (name == "double") { return _tool_double(x); }
+  return 0.0;
+}
+let calls = ["square", "double", "square"];
+let out = "";
+for (let i = 0; i < len(calls); i = i + 1) {
+  let name = calls[i];
+  let r: float = _tool_apply(name, 2.0);
+  out = out + name + "(2.0)=" + str(r);
+  if (i < len(calls) - 1) { out = out + " "; }
+}
+return "dispatch(calls=[square,double,square]) = [" + out + "]";`,
+    ['name -> tool dispatch', 'Deterministic executor', 'Unknown tool -> 0.0 (safe)'],
+    ['名称 → 工具调度', '确定性执行器', '未知工具 → 0.0（安全）'],
+  ),
+  'runtime wiring (catalog · tools · mcps · skills)': d(
+    'lume-core exposes agent introspection (catalog/tools/mcps/skills) plus an optional LLM hook via LLM_API_URL/LLM_MODEL. Those builtins are interpreter-side; the agent backend is external/optional, so the demo stays self-contained and does not call it.',
+    'lume-core 暴露智能体内省（catalog/tools/mcps/skills）与可选的 LLM 钩子（LLM_API_URL/LLM_MODEL）。这些内建在解释器侧；智能体后端外部/可选，故 demo 自包含、不调用它。',
+    `// interpreter-side builtins (not called in the demo)
+// catalog()  -> { skills, tools, mcps } full registry snapshot
+// tools()    -> tool names + desc + OpenAI-style param schema
+// mcps()     -> gateway + local MCP servers (source-tagged)
+// skills()   -> named skill capabilities
+// env hook: LLM_API_URL / LLM_MODEL (external model, optional)`,
+    ['catalog/tools/mcps/skills introspection', 'LLM hook via env (optional)', 'Interpreter-side · demo self-contained'],
+    ['catalog/tools/mcps/skills 内省', 'LLM 钩子经环境变量（可选）', '解释器侧 · demo 自包含'],
+  ),
 };
 
 export function getDetail(name: string): Detail | undefined {

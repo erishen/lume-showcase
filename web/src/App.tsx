@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import type { Algorithm, AppItem, Bench, Feature } from './types';
-import { getAlgorithms, getApps, getBench, getFeatures } from './api';
+import type { AgentItem, Algorithm, AppItem, Bench, Feature } from './types';
+import { getAgent, getAlgorithms, getApps, getBench, getFeatures } from './api';
 import { getInitialLang, localize, saveLang, ui } from './i18n';
 import type { Lang } from './i18n';
 import { getDetail } from './content';
 
-type Tab = 'features' | 'algorithms' | 'apps' | 'bench';
+type Tab = 'features' | 'algorithms' | 'apps' | 'agent' | 'bench';
 
 function useFetch<T>(loader: () => Promise<T>): { data: T | null; error: string | null } {
   const [data, setData] = useState<T | null>(null);
@@ -113,6 +113,32 @@ function Apps({ data, lang }: { data: AppItem[]; lang: Lang }) {
   );
 }
 
+function Agent({ data, lang, open, onToggle }: { data: AgentItem[]; lang: Lang; open: Set<string>; onToggle: (n: string) => void }) {
+  return (
+    <div className="grid">
+      {data.map((a, i) => {
+        const x = localize(a, lang);
+        const isOpen = open.has(a.name);
+        return (
+          <div className="card" key={i}>
+            <div className="title">
+              <h3>{x.name}</h3>
+            </div>
+            <p className="desc">{x.desc}</p>
+            <div className="demo">{x.demo}</div>
+            {getDetail(a.name) && (
+              <button className="detail-toggle" onClick={() => onToggle(a.name)} aria-expanded={isOpen}>
+                {isOpen ? ui.hide[lang] : ui.details[lang]}
+              </button>
+            )}
+            {isOpen && <Detail name={a.name} lang={lang} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Performance comparison (wall 1/2/3 · lume-core measured): bar width is
 // log10(speedup)-scaled so 207x and 1.02x stay balanced on a linear axis.
 function Performance({ data, lang }: { data: Bench[]; lang: Lang }) {
@@ -147,6 +173,7 @@ export default function App() {
   const feats = useFetch(getFeatures);
   const algos = useFetch(getAlgorithms);
   const apps = useFetch(getApps);
+  const agent = useFetch(getAgent);
   const bench = useFetch(getBench);
 
   const toggle = () => {
@@ -209,11 +236,18 @@ export default function App() {
           {tabLabels[2]}
         </button>
         <button
+          className={tab === 'agent' ? 'active' : ''}
+          onClick={() => setTab('agent')}
+          aria-pressed={tab === 'agent'}
+        >
+          {tabLabels[3]}
+        </button>
+        <button
           className={tab === 'bench' ? 'active' : ''}
           onClick={() => setTab('bench')}
           aria-pressed={tab === 'bench'}
         >
-          {tabLabels[3]}
+          {tabLabels[4]}
         </button>
       </div>
 
@@ -228,6 +262,10 @@ export default function App() {
       {tab === 'apps' &&
         (apps.error ? <div className="error">{apps.error}</div> :
          apps.data ? <Apps data={apps.data} lang={lang} /> : <div className="loading">{ui.loading[lang]}</div>)}
+
+      {tab === 'agent' &&
+        (agent.error ? <div className="error">{agent.error}</div> :
+         agent.data ? <Agent data={agent.data} lang={lang} open={open} onToggle={toggleDetail} /> : <div className="loading">{ui.loading[lang]}</div>)}
 
       {tab === 'bench' &&
         (bench.error ? <div className="error">{bench.error}</div> :

@@ -28,3 +28,9 @@ export interface Bench {
   speedup: number;
   note: string;
 }
+
+export interface AgentItem {
+  name: string;
+  desc: string;
+  demo: string;
+}

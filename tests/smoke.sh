@@ -36,10 +36,12 @@ wait_health
 assert_count features 12
 assert_count algorithms 12
 assert_count apps 12
+assert_count agent 3
 assert_count bench 3
 curl -s -o /dev/null -w "ok   static index %{http_code}\n" "http://127.0.0.1:$PORT/"
 curl -s "http://127.0.0.1:$PORT/api/features" > "$TMP/interp_features.json"
 curl -s "http://127.0.0.1:$PORT/api/algorithms" > "$TMP/interp_algorithms.json"
+curl -s "http://127.0.0.1:$PORT/api/agent" > "$TMP/interp_agent.json"
 kill "$SRV" 2>/dev/null; SRV=""; sleep 0.5
 
 echo "=== text backend server ==="
@@ -50,6 +52,7 @@ if "$BIN" --compile-text -o "$TMP/showcase_t.exe" "$ROOT/server.lume" 2>"$TMP/co
   assert_count algorithms 12
   curl -s "http://127.0.0.1:$PORT/api/features" > "$TMP/text_features.json"
   curl -s "http://127.0.0.1:$PORT/api/algorithms" > "$TMP/text_algorithms.json"
+  curl -s "http://127.0.0.1:$PORT/api/agent" > "$TMP/text_agent.json"
   kill "$SRV" 2>/dev/null; SRV=""
   diff "$TMP/interp_features.json" "$TMP/text_features.json" >/dev/null \
     && echo "ok   interp/text features byte-identical" \
@@ -57,6 +60,9 @@ if "$BIN" --compile-text -o "$TMP/showcase_t.exe" "$ROOT/server.lume" 2>"$TMP/co
   diff "$TMP/interp_algorithms.json" "$TMP/text_algorithms.json" >/dev/null \
     && echo "ok   interp/text algorithms byte-identical" \
     || { echo "FAIL algorithms drift interp/text"; exit 1; }
+  diff "$TMP/interp_agent.json" "$TMP/text_agent.json" >/dev/null \
+    && echo "ok   interp/text agent byte-identical" \
+    || { echo "FAIL agent drift interp/text"; exit 1; }
   echo "ok   text backend server"
 else
   echo "skip text backend (compile failed: $(head -1 "$TMP/compile.log"))"

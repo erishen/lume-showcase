@@ -43,6 +43,13 @@ English (the public source of truth); the frontend translates display strings
 for the Chinese view and remembers your choice in `localStorage`. Without a
 stored preference it follows the browser language (default English).
 
+The **Agent** tab demonstrates the autonomous plan → act → observe → refine
+cycle with a self-contained lume loop (deterministic policy, no external LLM
+call). lume-core exposes agent introspection (`catalog`/`tools`/`mcps`/
+`skills`) and an optional LLM hook via `LLM_API_URL`/`LLM_MODEL`, but those
+builtins are interpreter-side — the demo stays pure lume so the interpreter,
+text and LLVM backends remain byte-identical.
+
 ## Layout
 
 ```

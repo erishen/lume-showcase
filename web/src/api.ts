@@ -1,4 +1,4 @@
-import type { Algorithm, AppItem, Bench, Feature } from './types';
+import type { AgentItem, Algorithm, AppItem, Bench, Feature } from './types';
 
 // The lume-core backend returns { status, type, body } where body is a JSON string.
 async function getJson<T>(path: string): Promise<T> {
@@ -11,4 +11,5 @@ async function getJson<T>(path: string): Promise<T> {
 export const getFeatures = () => getJson<Feature[]>('/api/features');
 export const getAlgorithms = () => getJson<Algorithm[]>('/api/algorithms');
 export const getApps = () => getJson<AppItem[]>('/api/apps');
+export const getAgent = () => getJson<AgentItem[]>('/api/agent');
 export const getBench = () => getJson<Bench[]>('/api/bench');
