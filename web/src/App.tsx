@@ -3,7 +3,7 @@ import type { AgentItem, Algorithm, AppItem, Bench, Feature, OverviewItem } from
 import { getAgent, getAlgorithms, getApps, getBench, getFeatures, getOverview } from './api';
 import { getInitialLang, localize, saveLang, ui } from './i18n';
 import type { Lang } from './i18n';
-import { getDetail, appRepo } from './content';
+import { getDetail } from './content';
 
 type Tab = 'overview' | 'features' | 'algorithms' | 'apps' | 'agent' | 'bench';
 
@@ -137,17 +137,6 @@ function Apps({ data, lang, open, onToggle }: { data: AppItem[]; lang: Lang; ope
             </div>
             <p className="desc">{x.desc}</p>
             <div className="demo">{x.libs}</div>
-            {appRepo[a.name] && (
-              <a
-                className="repo"
-                href={appRepo[a.name]}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={appRepo[a.name]}
-              >
-                github.com/erishen/lume-core ↗
-              </a>
-            )}
             {getDetail(a.name) && (
               <button className="detail-toggle" onClick={() => onToggle(a.name)} aria-expanded={isOpen}>
                 {isOpen ? ui.hide[lang] : ui.details[lang]}
