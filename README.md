@@ -64,6 +64,26 @@ web/                   React frontend (Vite + TS)
   PINN solver, PDE numerics, data pipelines, static site + API same process,
   MCP server, graph/signal/stats tools, SQLite storage, crypto/hash, optimization.
 
+## Docker
+
+Container: lume-core (built in-image from `../lume-core`, interpreter + text
+backends — no libLLVM needed) serving the API + the built React app.
+
+```sh
+cd work/lume                 # build context must be the parent of both dirs
+docker build -f lume-showcase/Dockerfile -t lume-showcase .
+docker run --rm -p 8793:8793 lume-showcase
+curl http://127.0.0.1:8793/api/health
+# -> {"status":200,...,"body":"{\"ok\":true,...}"}
+```
+
+- `LUME_BIND=0.0.0.0` is set in the image (container needs all interfaces);
+  local runs default to `127.0.0.1`.
+- The apk mirror defaults to `mirrors.aliyun.com` (override with
+  `--build-arg APK_MIRROR=<url>`).
+- `work/lume/.dockerignore` trims the context (sibling projects, git dirs,
+  build artifacts).
+
 ## Notes
 
 - Requires a `lume-core` build at `../lume-core/bin/lume-core` (repo-relative).

@@ -47,8 +47,11 @@ get "/api/apps", (req) => {
   return json(apps());
 };
 
+// 绑定地址默认 127.0.0.1（本地安全）；容器/跨机用 LUME_BIND=0.0.0.0 覆盖。
+let bind_host = env("LUME_BIND", "127.0.0.1");
+
 server {
-  host = "127.0.0.1";
+  host = bind_host;
   port = 8793;
   docroot = "web/dist";
 }
