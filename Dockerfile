@@ -11,10 +11,10 @@
 
 # ---- 1. UI build (React 18 + Vite + TS) ----
 # 分层缓存：先 COPY 依赖清单 → npm ci（命中缓存即跳过下载）→ 再 COPY 源码。
-FROM node:20-alpine AS ui
+FROM node:24-alpine AS ui
 WORKDIR /build
 COPY lume-showcase/web/package.json lume-showcase/web/package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN npm ci --no-audit --no-fund --include=optional
 COPY lume-showcase/web ./
 RUN npm run build
 

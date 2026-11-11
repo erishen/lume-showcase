@@ -40,7 +40,7 @@ jobs:
       - name: frontend build
         working-directory: lume-showcase/web
         run: |
-          npm ci --no-audit --no-fund
+          npm ci --no-audit --no-fund --include=optional
           npm run build
 
       - name: docker image build
