@@ -42,12 +42,13 @@ func demo_hof(): string {
 
 // ④ range 序列。
 func demo_range(): string {
+  let r = range(1, 5);
   let acc: string = "";
-  for (let i = 0; i < len(range(1, 5)); i = i + 1) {
-    acc = acc + str(range(1, 5)[i]);
-    if (i < len(range(1, 5)) - 1) { acc = acc + ","; }
+  for (let i = 0; i < len(r); i = i + 1) {
+    acc = acc + str(r[i]);
+    if (i < len(r) - 1) { acc = acc + ","; }
   }
-  return "range(1,5)=[" + acc + "] len=" + str(len(range(1, 5)));
+  return "range(1,5)=[" + acc + "] len=" + str(len(r));
 }
 
 // ⑤ Result + `?` 错误传播。
