@@ -7,17 +7,6 @@ import { getDetail } from './content';
 
 type Tab = 'features' | 'algorithms' | 'apps' | 'agent' | 'bench';
 
-function useFetch<T>(loader: () => Promise<T>): { data: T | null; error: string | null } {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    loader()
-      .then(setData)
-      .catch((e) => setError(String(e)));
-  }, [loader]);
-  return { data, error };
-}
-
 // Expandable detail panel: longer description + key points + the actual lume
 // source that produced the demo. Keyed by the API's English name (content.ts).
 function Detail({ name, lang }: { name: string; lang: Lang }) {
@@ -170,11 +159,32 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('features');
   const [lang, setLang] = useState<Lang>(getInitialLang);
   const [open, setOpen] = useState<Set<string>>(new Set());
-  const feats = useFetch(getFeatures);
-  const algos = useFetch(getAlgorithms);
-  const apps = useFetch(getApps);
-  const agent = useFetch(getAgent);
-  const bench = useFetch(getBench);
+  // Lazy per-tab fetch: only the active tab is loaded (1 request on mount,
+  // the rest on first open), then cached so switching back is instant.
+  const [cache, setCache] = useState<Partial<Record<Tab, { data: unknown; error: string | null }>>>({});
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  useEffect(() => {
+    if (cache[tab] !== undefined) return;
+    const loaders: Record<Tab, () => Promise<unknown>> = {
+      features: getFeatures,
+      algorithms: getAlgorithms,
+      apps: getApps,
+      agent: getAgent,
+      bench: getBench,
+    };
+    loaders[tab]().then(
+      (data) => setCache((c) => (c[tab] !== undefined ? c : { ...c, [tab]: { data, error: null } })),
+      (e) => setCache((c) => (c[tab] !== undefined ? c : { ...c, [tab]: { data: null, error: String(e) } })),
+    );
+  }, [tab, cache]);
+
+  const current = cache[tab];
+  const data = current?.data;
+  const error = current?.error ?? null;
 
   const toggle = () => {
     const next: Lang = lang === 'en' ? 'zh' : 'en';
@@ -252,24 +262,24 @@ export default function App() {
       </div>
 
       {tab === 'features' &&
-        (feats.error ? <div className="error">{feats.error}</div> :
-         feats.data ? <Features data={feats.data} lang={lang} open={open} onToggle={toggleDetail} /> : <div className="loading">{ui.loading[lang]}</div>)}
+        (error ? <div className="error">{error}</div> :
+         data ? <Features data={data as Feature[]} lang={lang} open={open} onToggle={toggleDetail} /> : <div className="loading">{ui.loading[lang]}</div>)}
 
       {tab === 'algorithms' &&
-        (algos.error ? <div className="error">{algos.error}</div> :
-         algos.data ? <Algorithms data={algos.data} lang={lang} open={open} onToggle={toggleDetail} /> : <div className="loading">{ui.loading[lang]}</div>)}
+        (error ? <div className="error">{error}</div> :
+         data ? <Algorithms data={data as Algorithm[]} lang={lang} open={open} onToggle={toggleDetail} /> : <div className="loading">{ui.loading[lang]}</div>)}
 
       {tab === 'apps' &&
-        (apps.error ? <div className="error">{apps.error}</div> :
-         apps.data ? <Apps data={apps.data} lang={lang} /> : <div className="loading">{ui.loading[lang]}</div>)}
+        (error ? <div className="error">{error}</div> :
+         data ? <Apps data={data as AppItem[]} lang={lang} /> : <div className="loading">{ui.loading[lang]}</div>)}
 
       {tab === 'agent' &&
-        (agent.error ? <div className="error">{agent.error}</div> :
-         agent.data ? <Agent data={agent.data} lang={lang} open={open} onToggle={toggleDetail} /> : <div className="loading">{ui.loading[lang]}</div>)}
+        (error ? <div className="error">{error}</div> :
+         data ? <Agent data={data as AgentItem[]} lang={lang} open={open} onToggle={toggleDetail} /> : <div className="loading">{ui.loading[lang]}</div>)}
 
       {tab === 'bench' &&
-        (bench.error ? <div className="error">{bench.error}</div> :
-         bench.data ? <Performance data={bench.data} lang={lang} /> : <div className="loading">{ui.loading[lang]}</div>)}
+        (error ? <div className="error">{error}</div> :
+         data ? <Performance data={data as Bench[]} lang={lang} /> : <div className="loading">{ui.loading[lang]}</div>)}
 
       <footer>
         <b>{f.stack}</b>: {f.body}<code>{f.code}</code>{f.tail}
