@@ -9,7 +9,7 @@
 import "./src/features.lume" as feats;
 import "./src/algorithms.lume" as algos;
 
-// ---- public 应用清单（中性·不含任何行业/内部信息） ----
+// ---- public 应用清单（中性·不含行业/专有信息） ----
 func apps() {
   let out = [];
   out = push(out, { name: "HTTP API / Web 服务", desc: "内建 server{} + run()·docroot 静态服务·SSE·路由闭包", libs: "lume-core 内建", status: "ok" });
