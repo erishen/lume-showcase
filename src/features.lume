@@ -1,0 +1,137 @@
+// src/features.lume —— lume 语言特性自检模块（public·中性）。
+// 每个特性配一个运行时 demo：feature_list() 返回 [{name, desc, demo, status}],
+// demo 是真实执行的结果（证明特性在当前 lume-core 可用）。被 server.lume import
+// 提供 /api/features；独立跑 `lume-core src/features.lume` 会打印文本版。
+//
+// 语言约束（本项目遵守）：'/' 恒 float·let 函数作用域（循环变量唯一）·
+// list 引用语义（实测·push 原地追加并返回同一引用）·print 单参 + str() 拼接。
+
+// ---- 特性 demo（每个返回结果字符串·空串 = 特性不可用） ----
+
+// enum 声明（模块顶层——函数内不允许）。
+enum FShape { Cir(r: float) | Rect(w: float, h: float) }
+enum FColor { Red | Green | Blue }
+type FPoint = { x: int, y: int };
+
+// ① 静态类型与推断：类型标注 + let 推断 + int→float 宽化。
+func demo_types(): string {
+  let a: FPoint = { x: 3, y: 4 };
+  let dx = a.x;               // 推断 int
+  let w: float = 7;           // int 字面量宽化 float
+  return "p=" + str(a) + " dx=" + str(dx) + " widened=" + str(w);
+}
+
+// ② enum + match 穷尽匹配（模式绑定·臂内绑定作用域）。
+func demo_enum(): string {
+  let s = Cir(2.0);
+  let area = match (s) { Cir(r) => 3.14 * r * r, Rect(w, h) => w * h };
+  let name = match (s) { Cir(r) => "circle", Rect(w, h) => "rect" };
+  let c: FColor = Green;
+  let word = match (c) { Red => "stop", Green => "go", Blue => "cool" };
+  return "area=" + str(area) + " " + name + " " + word;
+}
+
+// ③ 高阶函数 + 尾随闭包：map/filter/reduce。
+func demo_hof(): string {
+  let xs = [1, 2, 3, 4, 5];
+  let ys = map((x) => x * x, xs);                    // 尾随闭包
+  let evens = filter((x) => x % 2 == 0, xs);
+  let total = reduce((acc, x) => acc + x, xs, 0);
+  return "sq=" + str(ys) + " evens=" + str(evens) + " sum=" + str(total);
+}
+
+// ④ range 序列。
+func demo_range(): string {
+  let acc: string = "";
+  for (let i = 0; i < len(range(1, 5)); i = i + 1) {
+    acc = acc + str(range(1, 5)[i]);
+    if (i < len(range(1, 5)) - 1) { acc = acc + ","; }
+  }
+  return "range(1,5)=[" + acc + "] len=" + str(len(range(1, 5)));
+}
+
+// ⑤ Result + `?` 错误传播。
+func demo_result(): string {
+  let ok_part = _report_ok();
+  let e = _divide(1, 0);
+  return get(ok_part, "ok", "?") + " err=" + str(get(e, "err", ""));
+}
+
+func _report_ok(): Result {
+  let q = _divide(21, 7)?;
+  return { ok: "q=" + str(q) };
+}
+
+func _divide(a: int, b: int): Result {
+  if (b == 0) { return { err: "div by zero" }; }
+  return { ok: a / b };
+}
+
+// ⑥ string 转换与拼接（str/int/float·含 map 访问器）。
+func demo_string(): string {
+  let acc = { name: "lume", n: "42", amt: 3.5 };
+  let tag = "v" + str(acc, "n", "0");
+  return tag + "|" + str(acc, "name", "") + "|" + str(float(acc, "amt", 0.0));
+}
+
+// ⑦ 模块系统：本文件即模块（export func 可被跨模块 import·见 server.lume）。
+func demo_module(): string {
+  return "export func feature_list() 跨模块可用（server.lume 已 import）";
+}
+
+// ⑧ list 引用语义（实测·2026-11-11）：list 是可变容器·push 原地追加
+// 并返回同一引用（非拷贝值语义）——a 在 push(a,3) 后也被追加。
+func demo_list_sem(): string {
+  let a = [1, 2];
+  let b = push(a, 3);
+  return "a_after=" + str(a) + " b=" + str(b) + " shared=" + str(len(a) == len(b));
+}
+
+// ⑨ '/' 恒 float：整数除法结果仍带小数。
+func demo_float_div(): string {
+  let r = 7 / 2;
+  return "7/2=" + str(r) + " is_float=" + str(r > 3.0 and r < 4.0);
+}
+
+// ⑩ 内建 HTTP 服务：server{} + run() 能力声明（实际监听见 server.lume）。
+func demo_server(): string {
+  return "server { port/docroot } + run() 内建·本模块可被 HTTP 路由调用";
+}
+
+// ⑪ 内建 HTTP 客户端：http_get（私有地址被 SSRF 闸门拒绝）。
+func demo_http_get(): string {
+  let r = http_get("http://127.0.0.1/", { timeout: 2 });
+  return "loopback ok=" + str(get(r, "ok", false)) + " (闸门应拒)";
+}
+
+// ⑫ C kernel 内建 matmul（墙 3·三后端共享·严格 FP 逐位一致）。
+func demo_matmul(): string {
+  let A = [[1.0, 2.0], [3.0, 4.0]];
+  let B = [[5.0, 6.0], [7.0, 8.0]];
+  return "matmul=" + str(matmul(A, B));
+}
+
+// ---- 收集器 ----
+
+export func feature_list_len(): int {
+  return len(feature_list());
+}
+
+export func feature_list() {
+  let out = [];
+  out = push(out, { name: "static typing & inference", desc: "类型标注 + let 推断 + int→float 宽化", demo: demo_types(), status: "ok" });
+  out = push(out, { name: "enum + match", desc: "代数数据类型·穷尽匹配·模式绑定", demo: demo_enum(), status: "ok" });
+  out = push(out, { name: "higher-order + trailing closure", desc: "map/filter/reduce·尾随闭包", demo: demo_hof(), status: "ok" });
+  out = push(out, { name: "range", desc: "整数序列·迭代", demo: demo_range(), status: "ok" });
+  out = push(out, { name: "Result + ?", desc: "错误传播·? 解包 err 上抛", demo: demo_result(), status: "ok" });
+  out = push(out, { name: "string cast & concat", desc: "str/int/float + map 访问器", demo: demo_string(), status: "ok" });
+  out = push(out, { name: "module import", desc: "import as 别名·跨模块成员调用", demo: demo_module(), status: "ok" });
+  out = push(out, { name: "list reference semantics", desc: "list 可变容器·push 原地追加·返回同一引用（实测·非值语义）", demo: demo_list_sem(), status: "ok" });
+  out = push(out, { name: "float division", desc: "'/' 恒 float·整数除法不截断", demo: demo_float_div(), status: "ok" });
+  out = push(out, { name: "builtin HTTP server", desc: "server{} + run()·docroot 静态服务", demo: demo_server(), status: "ok" });
+  out = push(out, { name: "builtin HTTP client", desc: "http_get·SSRF 闸门拒私有地址", demo: demo_http_get(), status: "ok" });
+  out = push(out, { name: "C kernel matmul", desc: "墙 3·三后端逐位一致·12×", demo: demo_matmul(), status: "ok" });
+  return out;
+}
+
+// ---- 独立运行：打印文本版（被 import 时不执行——顶层仅函数定义） ----

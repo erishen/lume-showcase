@@ -1,0 +1,55 @@
+// server.lume —— lume-core HTTP 服务：/api/features + /api/algorithms + /api/apps
+// + 静态服务 web/dist（前端 build 产物）。用 lume-core 内建 server{} + run()：
+//
+//   运行：bin/lume-core server.lume     （cwd = 本仓库根）
+//   验证：curl http://127.0.0.1:8793/api/health
+//
+// 前端开发模式（Vite :5173）走 proxy /api -> 127.0.0.1:8793，生产用 docroot。
+
+import "./src/features.lume" as feats;
+import "./src/algorithms.lume" as algos;
+
+// ---- public 应用清单（中性·不含任何行业/内部信息） ----
+func apps() {
+  let out = [];
+  out = push(out, { name: "HTTP API / Web 服务", desc: "内建 server{} + run()·docroot 静态服务·SSE·路由闭包", libs: "lume-core 内建", status: "ok" });
+  out = push(out, { name: "科学计算 CLI", desc: "数值积分/插值/线性求解/特征值（sci·linalg 库）", libs: "sci.lume, linalg.lume", status: "ok" });
+  out = push(out, { name: "ML 训练与推理", desc: "MLP/注意力/聚类/降维·纯 .lume 训练循环（ml 库）", libs: "ml.lume", status: "ok" });
+  out = push(out, { name: "PINN 求解器", desc: "物理约束神经求解·解析梯度（墙 1·200×）", libs: "pinn.lume", status: "ok" });
+  out = push(out, { name: "偏微分方程数值解", desc: "有限差分·热方程/波动（pde 库）", libs: "pde.lume", status: "ok" });
+  out = push(out, { name: "数据管道 / 批处理", desc: "map/filter/reduce·list 引用语义·文件内建", libs: "lume 内建", status: "ok" });
+  out = push(out, { name: "静态站点 + API 同进程", desc: "docroot 静态 + 路由 API·单一二进制进程", libs: "server{}", status: "ok" });
+  out = push(out, { name: "MCP 服务器", desc: "mcp_fs / mcp_math 先例·模型上下文协议", libs: "lume-core 内建", status: "ok" });
+  out = push(out, { name: "图 / 信号 / 统计工具", desc: "图遍历·信号平滑·分布散度（graph·sig·dist 库）", libs: "graph.lume, sig.lume, dist.lume", status: "ok" });
+  out = push(out, { name: "SQLite 数据存储", desc: "sql_query 内建·结构化查询", libs: "lume-core 内建", status: "ok" });
+  out = push(out, { name: "加密 / 哈希工具", desc: "crypt_sha512·hmac_sha256·spawn 子进程", libs: "lume-core 内建", status: "ok" });
+  out = push(out, { name: "优化 / 运筹", desc: "梯度下降/牛顿法/线搜索（optim 库）", libs: "optim.lume", status: "ok" });
+  return out;
+}
+
+func json(data) {
+  return { status: 200, type: "application/json", body: stringify(data) };
+}
+
+get "/api/health", (req) => {
+  return json({ ok: true, service: "lume-showcase", cores: 1 });
+};
+
+get "/api/features", (req) => {
+  return json(feats.feature_list());
+};
+
+get "/api/algorithms", (req) => {
+  return json(algos.algorithm_list());
+};
+
+get "/api/apps", (req) => {
+  return json(apps());
+};
+
+server {
+  host = "127.0.0.1";
+  port = 8793;
+  docroot = "web/dist";
+}
+run();
