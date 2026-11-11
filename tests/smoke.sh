@@ -43,7 +43,9 @@ echo "=== coverage gate (i18n zhDict + content.ts detail) ==="
 python3 "$ROOT/tests/check_coverage.py" "$PORT" || { echo "FAIL coverage gate"; exit 1; }
 curl -s "http://127.0.0.1:$PORT/api/features" > "$TMP/interp_features.json"
 curl -s "http://127.0.0.1:$PORT/api/algorithms" > "$TMP/interp_algorithms.json"
+curl -s "http://127.0.0.1:$PORT/api/apps" > "$TMP/interp_apps.json"
 curl -s "http://127.0.0.1:$PORT/api/agent" > "$TMP/interp_agent.json"
+curl -s "http://127.0.0.1:$PORT/api/bench" > "$TMP/interp_bench.json"
 kill "$SRV" 2>/dev/null; SRV=""; sleep 0.5
 
 echo "=== text backend server ==="
@@ -54,7 +56,9 @@ if "$BIN" --compile-text -o "$TMP/showcase_t.exe" "$ROOT/server.lume" 2>"$TMP/co
   assert_count algorithms 12
   curl -s "http://127.0.0.1:$PORT/api/features" > "$TMP/text_features.json"
   curl -s "http://127.0.0.1:$PORT/api/algorithms" > "$TMP/text_algorithms.json"
+  curl -s "http://127.0.0.1:$PORT/api/apps" > "$TMP/text_apps.json"
   curl -s "http://127.0.0.1:$PORT/api/agent" > "$TMP/text_agent.json"
+  curl -s "http://127.0.0.1:$PORT/api/bench" > "$TMP/text_bench.json"
   kill "$SRV" 2>/dev/null; SRV=""
   diff "$TMP/interp_features.json" "$TMP/text_features.json" >/dev/null \
     && echo "ok   interp/text features byte-identical" \
@@ -65,6 +69,12 @@ if "$BIN" --compile-text -o "$TMP/showcase_t.exe" "$ROOT/server.lume" 2>"$TMP/co
   diff "$TMP/interp_agent.json" "$TMP/text_agent.json" >/dev/null \
     && echo "ok   interp/text agent byte-identical" \
     || { echo "FAIL agent drift interp/text"; exit 1; }
+  diff "$TMP/interp_apps.json" "$TMP/text_apps.json" >/dev/null \
+    && echo "ok   interp/text apps byte-identical" \
+    || { echo "FAIL apps drift interp/text"; exit 1; }
+  diff "$TMP/interp_bench.json" "$TMP/text_bench.json" >/dev/null \
+    && echo "ok   interp/text bench byte-identical" \
+    || { echo "FAIL bench drift interp/text"; exit 1; }
   echo "ok   text backend server"
 else
   echo "skip text backend (compile failed: $(head -1 "$TMP/compile.log"))"
