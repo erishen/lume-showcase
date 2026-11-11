@@ -53,13 +53,13 @@ func demo_range(): string {
 
 // ⑤ Result + `?` 错误传播。
 func demo_result(): string {
-  let ok_part = _report_ok();
-  let e = _divide(1, 0);
+  let ok_part: Result = _report_ok();
+  let e: Result = _divide(1, 0);
   return get(ok_part, "ok", "?") + " err=" + str(get(e, "err", ""));
 }
 
 func _report_ok(): Result {
-  let q = _divide(21, 7)?;
+  let q: float = _divide(21, 7)?;
   return { ok: "q=" + str(q) };
 }
 
@@ -72,7 +72,8 @@ func _divide(a: int, b: int): Result {
 func demo_string(): string {
   let acc = { name: "lume", n: "42", amt: 3.5 };
   let tag = "v" + str(acc, "n", "0");
-  return tag + "|" + str(acc, "name", "") + "|" + str(float(acc, "amt", 0.0));
+  let amt: float = float(get(acc, "amt", 0.0));
+  return tag + "|" + str(acc, "name", "") + "|" + str(amt);
 }
 
 // ⑦ 模块系统：本文件即模块（export func 可被跨模块 import·见 server.lume）。
@@ -83,8 +84,8 @@ func demo_module(): string {
 // ⑧ list 引用语义（实测·2026-11-11）：list 是可变容器·push 原地追加
 // 并返回同一引用（非拷贝值语义）——a 在 push(a,3) 后也被追加。
 func demo_list_sem(): string {
-  let a = [1, 2];
-  let b = push(a, 3);
+  let a: int[] = [1, 2];
+  let b: int[] = push(a, 3);
   return "a_after=" + str(a) + " b=" + str(b) + " shared=" + str(len(a) == len(b));
 }
 
@@ -99,10 +100,11 @@ func demo_server(): string {
   return "server { port/docroot } + run() 内建·本模块可被 HTTP 路由调用";
 }
 
-// ⑪ 内建 HTTP 客户端：http_get（私有地址被 SSRF 闸门拒绝）。
+// ⑪ 内建 HTTP 客户端：http_get（解释器内建·编译后端未接·SSRF 闸门拒私有地址）。
+// 注：demo 不实际调用 http_get——它是解释器内建，文本/LLVM 后端无内建表条目；
+// 实际调用在解释器运行（server 用解释器）演示 SSRF 闸门。三后端一致性由此保持。
 func demo_http_get(): string {
-  let r = http_get("http://127.0.0.1/", { timeout: 2 });
-  return "loopback ok=" + str(get(r, "ok", false)) + " (闸门应拒)";
+  return "http_get(url, opts) 解释器内建·SSRF 闸门拒私有地址·编译后端未接（边界）";
 }
 
 // ⑫ C kernel 内建 matmul（墙 3·三后端共享·严格 FP 逐位一致）。

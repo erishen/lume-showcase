@@ -1,0 +1,50 @@
+# GitHub Actions CI —— lume-showcase。
+# 依赖 erishen/lume-core（公共 repo）源码构建；跑 lume-core 门禁 + showcase
+# 三后端 smoke + 前端 build + Docker 镜像构建。
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: lume-showcase
+
+      - uses: actions/checkout@v4
+        with:
+          repository: erishen/lume-core
+          path: lume-core
+
+      - name: install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libssl-dev libsqlite3-dev pkg-config clang llvm
+
+      - name: build lume-core
+        working-directory: lume-core
+        run: make -j"$(nproc)"
+
+      - name: lume-core gates
+        working-directory: lume-core
+        run: make lib-backends lib-compat
+
+      - name: showcase smoke (interp + text backend·byte-identical)
+        working-directory: lume-showcase
+        run: bash tests/smoke.sh
+
+      - name: frontend build
+        working-directory: lume-showcase/web
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: docker image build
+        run: |
+          # context 是 checkout 根（lume-showcase + lume-core 兄弟）·裁剪上下文
+          printf '/lume-showcase/.git/\n/lume-showcase/web/node_modules/\n/lume-showcase/web/dist/\n/lume-core/.git/\n/lume-core/build/\n/lume-core/bin/\n' > .dockerignore
+          docker build -f lume-showcase/Dockerfile -t lume-showcase .

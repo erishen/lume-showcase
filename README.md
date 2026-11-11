@@ -96,6 +96,23 @@ docker compose up -d --build
 - `work/lume/.dockerignore` trims the context (sibling projects, git dirs,
   build artifacts).
 
+## Tests
+
+```sh
+cd work/lume/lume-showcase
+bash tests/smoke.sh        # server (interp + text backend) API counts + byte-identical
+```
+
+`tests/smoke.sh` asserts all four API endpoints, the static index, and that
+the interpreter and text-backend servers produce **byte-identical** JSON for
+`/api/features` and `/api/algorithms`. The LLVM backend also compiles and
+runs `server.lume` locally (when libLLVM is present); the container image
+builds without it (interpreter + text backends only).
+
+A GitHub Actions workflow (`.github/workflows/ci.yml`) is pre-wired for when
+this repo is pushed: it builds `erishen/lume-core`, runs its gates, the
+showcase smoke, the frontend build, and a Docker image build.
+
 ## Notes
 
 - Requires a `lume-core` build at `../lume-core/bin/lume-core` (repo-relative).

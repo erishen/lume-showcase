@@ -36,32 +36,34 @@ func bench() {
   return out;
 }
 
-func json(data) {
-  return { status: 200, type: "application/json", body: stringify(data) };
+func json(s: string) {
+  return { status: 200, type: "application/json", body: s };
 }
 
 get "/api/health", (req) => {
-  return json({ ok: true, service: "lume-showcase", cores: 1 });
+  return json(stringify({ ok: true, service: "lume-showcase", cores: 1 }));
 };
 
 get "/api/features", (req) => {
-  return json(feats.feature_list());
+  return json(stringify(feats.feature_list()));
 };
 
 get "/api/algorithms", (req) => {
-  return json(algos.algorithm_list());
+  return json(stringify(algos.algorithm_list()));
 };
 
 get "/api/apps", (req) => {
-  return json(apps());
+  return json(stringify(apps()));
 };
 
 get "/api/bench", (req) => {
-  return json(bench());
+  return json(stringify(bench()));
 };
 
 // 绑定地址默认 127.0.0.1（本地安全）；容器/跨机用 LUME_BIND=0.0.0.0 覆盖。
-let bind_host = env("LUME_BIND", "127.0.0.1");
+let bind_host: string = "127.0.0.1";
+let bind_env = env("LUME_BIND");
+if (bind_env != null) { bind_host = str(bind_env); }
 
 server {
   host = bind_host;
