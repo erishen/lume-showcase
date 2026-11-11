@@ -8,6 +8,7 @@ services:
       context: ..            # work/lume (parent of lume-core + lume-showcase)
       dockerfile: lume-showcase/Dockerfile
     image: lume-showcase
+    container_name: lume-showcase   # explicit (avoid lume-showcase-showcase-1)
     ports:
       - "18793:18793"
     read_only: true          # server writes no files (/tmp is the only writable mount)
