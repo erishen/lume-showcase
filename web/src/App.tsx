@@ -82,13 +82,25 @@ export default function App() {
       </header>
 
       <div className="tabs">
-        <button className={tab === 'features' ? 'active' : ''} onClick={() => setTab('features')}>
+        <button
+          className={tab === 'features' ? 'active' : ''}
+          onClick={() => setTab('features')}
+          aria-pressed={tab === 'features'}
+        >
           Language features
         </button>
-        <button className={tab === 'algorithms' ? 'active' : ''} onClick={() => setTab('algorithms')}>
+        <button
+          className={tab === 'algorithms' ? 'active' : ''}
+          onClick={() => setTab('algorithms')}
+          aria-pressed={tab === 'algorithms'}
+        >
           Algorithms
         </button>
-        <button className={tab === 'apps' ? 'active' : ''} onClick={() => setTab('apps')}>
+        <button
+          className={tab === 'apps' ? 'active' : ''}
+          onClick={() => setTab('apps')}
+          aria-pressed={tab === 'apps'}
+        >
           Applications
         </button>
       </div>

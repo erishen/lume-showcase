@@ -42,6 +42,8 @@ COPY --chown=app:app lume-showcase/server.lume ./server.lume
 COPY --chown=app:app lume-showcase/src ./src
 USER app
 ENV LUME_BIND=0.0.0.0
+# server 不写文件：--read-only 运行安全（/tmp 是唯一可写挂载点）。
+VOLUME /tmp
 LABEL org.opencontainers.image.title="lume-showcase" \
       org.opencontainers.image.description="lume language + lume-core runtime showcase (API + React UI)" \
       org.opencontainers.image.licenses="MIT"

@@ -72,11 +72,13 @@ backends — no libLLVM needed) serving the API + the built React app.
 ```sh
 cd work/lume                 # build context must be the parent of both dirs
 docker build -f lume-showcase/Dockerfile -t lume-showcase .
-docker run --rm -p 18793:18793 lume-showcase
+docker run --rm -p 18793:18793 --read-only lume-showcase
 curl http://127.0.0.1:18793/api/health
 # -> {"status":200,...,"body":"{\"ok\":true,...}"}
 ```
 
+- Runs as non-root `app` (uid 100); `--read-only` is safe (the server writes
+  nothing — `/tmp` is the only writable mount point).
 - `LUME_BIND=0.0.0.0` is set in the image (container needs all interfaces);
   local runs default to `127.0.0.1`.
 - The apk mirror defaults to `mirrors.aliyun.com` (override with
