@@ -269,6 +269,10 @@ export const ui = {
   loading: { en: 'loading…', zh: '加载中…' },
   toggleLabel: { en: '中文', zh: 'EN' },
   toggleTitle: { en: 'Switch to Chinese', zh: '切换到英文' },
+  details: { en: 'Details', zh: '详情' },
+  hide: { en: 'Hide', zh: '收起' },
+  pointsLabel: { en: 'Key points', zh: '要点' },
+  codeLabel: { en: 'Demo source (lume)', zh: 'Demo 源码（lume）' },
   footer: {
     en: {
       stack: 'Stack',

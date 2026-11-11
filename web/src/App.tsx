@@ -3,6 +3,7 @@ import type { Algorithm, AppItem, Bench, Feature } from './types';
 import { getAlgorithms, getApps, getBench, getFeatures } from './api';
 import { getInitialLang, localize, saveLang, ui } from './i18n';
 import type { Lang } from './i18n';
+import { getDetail } from './content';
 
 type Tab = 'features' | 'algorithms' | 'apps' | 'bench';
 
@@ -17,11 +18,31 @@ function useFetch<T>(loader: () => Promise<T>): { data: T | null; error: string 
   return { data, error };
 }
 
-function Features({ data, lang }: { data: Feature[]; lang: Lang }) {
+// Expandable detail panel: longer description + key points + the actual lume
+// source that produced the demo. Keyed by the API's English name (content.ts).
+function Detail({ name, lang }: { name: string; lang: Lang }) {
+  const d = getDetail(name);
+  if (!d) return null;
+  const zh = lang === 'zh';
+  return (
+    <div className="detail">
+      <p className="longdesc">{zh ? d.longZh : d.longEn}</p>
+      <div className="points-label">{ui.pointsLabel[lang]}</div>
+      <ul className="points">
+        {(zh ? d.pointsZh : d.pointsEn).map((p, i) => <li key={i}>{p}</li>)}
+      </ul>
+      <div className="code-label">{ui.codeLabel[lang]}</div>
+      <pre className="code">{d.code}</pre>
+    </div>
+  );
+}
+
+function Features({ data, lang, open, onToggle }: { data: Feature[]; lang: Lang; open: Set<string>; onToggle: (n: string) => void }) {
   return (
     <div className="grid">
       {data.map((f, i) => {
         const x = localize(f, lang);
+        const isOpen = open.has(f.name);
         return (
           <div className="card" key={i}>
             <div className="title">
@@ -30,6 +51,12 @@ function Features({ data, lang }: { data: Feature[]; lang: Lang }) {
             </div>
             <p className="desc">{x.desc}</p>
             <div className="demo">{x.demo}</div>
+            {getDetail(f.name) && (
+              <button className="detail-toggle" onClick={() => onToggle(f.name)} aria-expanded={isOpen}>
+                {isOpen ? ui.hide[lang] : ui.details[lang]}
+              </button>
+            )}
+            {isOpen && <Detail name={f.name} lang={lang} />}
           </div>
         );
       })}
@@ -37,11 +64,12 @@ function Features({ data, lang }: { data: Feature[]; lang: Lang }) {
   );
 }
 
-function Algorithms({ data, lang }: { data: Algorithm[]; lang: Lang }) {
+function Algorithms({ data, lang, open, onToggle }: { data: Algorithm[]; lang: Lang; open: Set<string>; onToggle: (n: string) => void }) {
   return (
     <div className="grid">
       {data.map((a, i) => {
         const x = localize(a, lang);
+        const isOpen = open.has(a.name);
         return (
           <div className="card" key={i}>
             <div className="title">
@@ -52,6 +80,12 @@ function Algorithms({ data, lang }: { data: Algorithm[]; lang: Lang }) {
             <p className="metric">{x.metric}</p>
             <p className="desc">{x.desc}</p>
             <div className="demo">{x.demo}</div>
+            {getDetail(a.name) && (
+              <button className="detail-toggle" onClick={() => onToggle(a.name)} aria-expanded={isOpen}>
+                {isOpen ? ui.hide[lang] : ui.details[lang]}
+              </button>
+            )}
+            {isOpen && <Detail name={a.name} lang={lang} />}
           </div>
         );
       })}
@@ -109,6 +143,7 @@ function Performance({ data, lang }: { data: Bench[]; lang: Lang }) {
 export default function App() {
   const [tab, setTab] = useState<Tab>('features');
   const [lang, setLang] = useState<Lang>(getInitialLang);
+  const [open, setOpen] = useState<Set<string>>(new Set());
   const feats = useFetch(getFeatures);
   const algos = useFetch(getAlgorithms);
   const apps = useFetch(getApps);
@@ -118,6 +153,15 @@ export default function App() {
     const next: Lang = lang === 'en' ? 'zh' : 'en';
     setLang(next);
     saveLang(next);
+  };
+
+  const toggleDetail = (name: string) => {
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
   };
 
   const tabLabels = ui.tabs[lang];
@@ -175,11 +219,11 @@ export default function App() {
 
       {tab === 'features' &&
         (feats.error ? <div className="error">{feats.error}</div> :
-         feats.data ? <Features data={feats.data} lang={lang} /> : <div className="loading">{ui.loading[lang]}</div>)}
+         feats.data ? <Features data={feats.data} lang={lang} open={open} onToggle={toggleDetail} /> : <div className="loading">{ui.loading[lang]}</div>)}
 
       {tab === 'algorithms' &&
         (algos.error ? <div className="error">{algos.error}</div> :
-         algos.data ? <Algorithms data={algos.data} lang={lang} /> : <div className="loading">{ui.loading[lang]}</div>)}
+         algos.data ? <Algorithms data={algos.data} lang={lang} open={open} onToggle={toggleDetail} /> : <div className="loading">{ui.loading[lang]}</div>)}
 
       {tab === 'apps' &&
         (apps.error ? <div className="error">{apps.error}</div> :

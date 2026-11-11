@@ -41,6 +41,22 @@ header p { margin: 0 0 24px; color: var(--muted); }
 .card .desc { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .card .demo { margin: 10px 0 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; background: var(--panel2); border-radius: 6px; padding: 8px 10px; overflow-x: auto; }
 .card .metric { margin: 8px 0 0; font-size: 12.5px; color: var(--accent); }
+.detail-toggle {
+  margin-top: 10px; padding: 4px 14px; border-radius: 6px; font-size: 12px;
+  border: 1px solid var(--border); background: var(--panel2); color: var(--muted);
+  cursor: pointer;
+}
+.detail-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.detail { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 12px; }
+.detail .longdesc { margin: 0 0 10px; color: var(--fg); font-size: 13.5px; line-height: 1.6; }
+.points-label, .code-label { margin: 10px 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.detail .points { margin: 0 0 4px; padding-left: 18px; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+.detail .code {
+  margin: 0; padding: 10px 12px; border-radius: 8px; overflow-x: auto;
+  background: var(--panel2); border: 1px solid var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.55;
+  color: var(--fg);
+}
 .bar-track { margin: 10px 0 0; height: 14px; border-radius: 7px; background: var(--panel2); border: 1px solid var(--border); overflow: hidden; }
 .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #7cc4ff); border-radius: 7px; }
 .loading, .error { color: var(--muted); padding: 24px; text-align: center; }
