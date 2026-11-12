@@ -6,6 +6,8 @@ loop, and the public application landscape. The React frontend renders data
 produced by a real `lume-core` HTTP server — every feature and algorithm
 demo below actually ran on the lume interpreter.
 
+> **Live demo:** <https://lume.erishen.cn/>
+
 > Public & neutral by design: no industry/company/internal information anywhere
 > in this repository. Content is generic math, physics (heat equation), ML,
 > and web tooling.
@@ -38,6 +40,20 @@ cd web && npm install && npm run build
 cd web && npm run dev   # http://localhost:5173
 ```
 
+### Visitor stats
+
+The public page reports one PV per load to `POST /api/visit` (frontend
+`recordVisit()`); `GET /api/visits` returns `total/today/uv/days/recent` and is
+PIN-gated. Set `LUME_SHOWCASE_VISIT_PIN` and keep the SQLite file outside the
+read-only root (`LUME_SHOWCASE_DATA_DIR`, container `/app/data` on a named
+volume). Rows older than 90 days are pruned at startup and at most every 24h
+while running; `POST /api/visit` is limited to 30 requests per IP per 60s and
+returns 429 beyond that. Loopback/private IPs, `LUME_SHOWCASE_IGNORE_IPS`
+(comma-separated, e.g. your own egress IP), and health-check/probe/bot UAs are
+filtered out of the summary. `recent` shows the client IP captured from `remote_addr` or the
+trusted proxy headers. If the reverse proxy keeps an access log, mask the
+`?pin=` value on `/api/visits` or disable logging for that endpoint.
+
 The UI has a language toggle in the top-right (English / Chinese). The
 lume-core API stays English (the public source of truth); the frontend
 translates display strings for the Chinese view and remembers your choice in
@@ -59,6 +75,7 @@ src/overview.lume      "what is lume" tour (export overview_sections())
 src/features.lume      language feature self-checks (export feature_list())
 src/algorithms.lume    algorithm demos + wall-1/2/3 metrics (export algorithm_list())
 src/agent.lume         agent loop demo (export agent_demo())
+src/visits.lume        visitor SQLite + PIN gate (export visits_summary())
 web/                   React frontend (Vite + TS)
   src/App.tsx          shell + lazy tab loader (React.lazy + Suspense)
   src/tabs/            one chunk per tab (Overview/Features/Algorithms/Apps/Agent/Performance)

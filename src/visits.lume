@@ -1,0 +1,328 @@
+// src/visits.lume — 公开展示站的访客统计（SQLite）。
+//
+// 两条路由（server.lume）：
+//   GET  /api/visits   汇总（total/today/uv/days/recent），PIN 门禁
+//   POST /api/visit    前端页面加载埋点（公开，不 gate）
+//
+// 数据落在 LUME_SHOWCASE_DATA_DIR（容器内 /app/data，挂 named volume 持久化）。
+// lume-core 的 sql_write 只打开已存在的库文件，所以首跑先 write_file 造空库。
+// lume-core bridge 向路由暴露 remote_addr / x_real_ip / x_forwarded_for，
+// 统计会记录真实客户端 IP；汇总再排除回环/内网/忽略 IP 与机器 UA。保留期
+// 90 天，启动时清一次，运行中最多每 24h 再清一次。
+
+let visits_dir = env("LUME_SHOWCASE_DATA_DIR");
+if (visits_dir == null or visits_dir == "") {
+  visits_dir = ".data";
+}
+let visits_db = visits_dir + "/visits.db";
+let visit_pin = env("LUME_SHOWCASE_VISIT_PIN");
+let visit_retention_days = 90;
+let visit_last_cleanup = 0;
+
+mkdir(visits_dir);
+
+func ensure_visits_db() {
+  let exists = false;
+  for (f in files(visits_dir)) {
+    if (f == "visits.db") {
+      exists = true;
+    }
+  }
+  if (not exists) {
+    let f = try(() => write_file(visits_db, ""));
+    if (f.err != null) {
+      print("visits: 无法创建 " + visits_db + ": " + f.err);
+      return;
+    }
+  }
+  let ddl = "CREATE TABLE IF NOT EXISTS visits (id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT, referrer TEXT, ua TEXT, visitor TEXT, ip TEXT, created INTEGER)";
+  let bot_ddl = "CREATE TABLE IF NOT EXISTS bot_ips (ip TEXT PRIMARY KEY, reason TEXT, until INTEGER, created INTEGER)";
+  for (s in [ddl, bot_ddl]) {
+    let r = try(() => sql_write(visits_db, s));
+    if (r.err != null) {
+      print("visits: 建表失败: " + r.err);
+      return;
+    }
+  }
+  // 保留 90 天（启动时清一次；DELETE 必须带 WHERE）。
+  let cutoff = int(now()) - visit_retention_days * 86400;
+  let old = try(() => sql_write(visits_db,
+    "DELETE FROM visits WHERE created < ?", [cutoff]));
+  if (old.err != null) {
+    print("visits: 清理历史失败: " + old.err);
+  }
+  let old_bots = try(() => sql_write(visits_db,
+    "DELETE FROM bot_ips WHERE until < ?", [int(now()) - 86400]));
+  if (old_bots.err != null) {
+    print("visits: 清理爬虫 IP 失败: " + old_bots.err);
+  }
+  visit_last_cleanup = int(now());
+}
+
+ensure_visits_db();
+
+func q(sql, params) {
+  let r = try(() => sql_query(visits_db, sql, params));
+  if (r.err != null) {
+    print("visits: 查询失败: " + r.err);
+    return [];
+  }
+  return r.ok;
+}
+
+// 云厂商第一节号清单。真实浏览器也可能从云主机/VPN 访问，所以只有再叠加
+// “云 IP 无来源/同 IP 多 UA” 才判为机器人，避免单凭 ASN 误杀。
+func cloud_ip_sql() {
+  return "ip LIKE '3.%' OR ip LIKE '13.%' OR ip LIKE '18.%' OR ip LIKE '20.%' OR ip LIKE '32.%' OR ip LIKE '34.%' OR ip LIKE '35.%' OR ip LIKE '40.%' OR ip LIKE '43.%' OR ip LIKE '44.%' OR ip LIKE '45.%' OR ip LIKE '50.%' OR ip LIKE '52.%' OR ip LIKE '54.%' OR ip LIKE '57.%' OR ip LIKE '64.%' OR ip LIKE '66.%' OR ip LIKE '69.%' OR ip LIKE '95.%' OR ip LIKE '98.%' OR ip LIKE '104.%' OR ip LIKE '108.%' OR ip LIKE '129.%' OR ip LIKE '135.%' OR ip LIKE '149.%' OR ip LIKE '158.%' OR ip LIKE '159.%' OR ip LIKE '165.%' OR ip LIKE '167.%' OR ip LIKE '173.%' OR ip LIKE '174.%' OR ip LIKE '185.%' OR ip LIKE '188.%' OR ip LIKE '195.%' OR ip LIKE '206.%' OR ip LIKE '213.%' OR ip LIKE '139.155.%'";
+}
+
+func cloud_ip(ip) {
+  let parts = split(ip, ".");
+  if (len(parts) < 2) { return false; }
+  let a = str(get(parts, 0, ""));
+  if (a == "3" or a == "13" or a == "18" or a == "20" or a == "32" or a == "34" or a == "35") { return true; }
+  if (a == "40" or a == "43" or a == "44" or a == "45" or a == "50" or a == "52" or a == "54" or a == "57") { return true; }
+  if (a == "64" or a == "66" or a == "69" or a == "95" or a == "98" or a == "104" or a == "108") { return true; }
+  if (a == "129" or a == "135" or a == "149" or a == "158" or a == "159" or a == "165" or a == "167") { return true; }
+  if (a == "173" or a == "174" or a == "185" or a == "188" or a == "195" or a == "206" or a == "213") { return true; }
+  if (a == "139" and str(get(parts, 1, "")) == "155") { return true; }
+  return false;
+}
+
+func ua_has(ua, needle) {
+  return replace(ua, needle, "") != ua;
+}
+
+func is_browser_ua(ua) {
+  if (not ua_has(ua, "Mozilla/")) { return false; }
+  return ua_has(ua, "Chrome/") or ua_has(ua, "Firefox/") or ua_has(ua, "Safari/");
+}
+
+func recent_multi_ua(ip, ua, since) {
+  let r = q("SELECT COUNT(DISTINCT ua) AS n FROM visits WHERE ip = ? AND ua IS NOT NULL AND ua <> '' AND ua <> ? AND created >= ?",
+    [ip, ua, since]);
+  return int(get(r, 0, {}), "n", 0) > 0;
+}
+
+func mark_bot_ip(ip, reason) {
+  let t = int(now());
+  let r = try(() => sql_write(visits_db,
+    "INSERT INTO bot_ips (ip, reason, until, created) VALUES (?, ?, ?, ?) ON CONFLICT(ip) DO UPDATE SET reason = excluded.reason, until = MAX(bot_ips.until, excluded.until)",
+    [ip, reason, t + 604800, t]));
+  if (r.err != null) {
+    print("visits: 记录爬虫 IP 失败: " + r.err);
+  }
+}
+
+// 返回非空 reason = 该次访问按爬虫处理；只影响汇总，不删原始记录。
+func detect_bot(path, referrer, ua, ip, wd) {
+  if (wd == "true") { return "webdriver"; }
+  if (ip == "" or ip == null) { return ""; }
+  if (not cloud_ip(ip)) { return ""; }
+  if (not is_browser_ua(ua)) { return ""; }
+  if (recent_multi_ua(ip, ua, int(now()) - 600)) { return "cloud_multi_ua"; }
+  // 云主机无来源访问：正常读者通常带站内/外链来源；爬虫直接抓站内任意路径。
+  if (referrer == "") { return "cloud_no_referrer"; }
+  return "";
+}
+
+// 启动时把近期“云 IP + 同 IP 多 UA”的历史记录一次性标进 bot_ips。
+// 只补缺不续期: 已有记录 DO NOTHING, 保留首次 created/until; 运行中再次识别
+// 才由 mark_bot_ip 推 until。
+func seed_bot_ips() {
+  let t = int(now());
+  let since = t - 30 * 86400;
+  let sql = "INSERT INTO bot_ips (ip, reason, until, created) SELECT ip, 'cloud_multi_ua', ?, ? FROM visits WHERE ip IS NOT NULL AND ip <> '' AND (" + cloud_ip_sql() + ") AND created >= ? GROUP BY ip HAVING COUNT(DISTINCT ua) > 1 ON CONFLICT(ip) DO NOTHING";
+  let r = try(() => sql_write(visits_db, sql, [t + 2592000, t, since]));
+  if (r.err != null) {
+    print("visits: 初始化爬虫 IP 失败: " + r.err);
+  }
+  let sql2 = "INSERT INTO bot_ips (ip, reason, until, created) SELECT ip, 'cloud_no_referrer', ?, ? FROM visits WHERE ip IS NOT NULL AND ip <> '' AND (" + cloud_ip_sql() + ") AND (referrer IS NULL OR referrer = '') AND created >= ? GROUP BY ip ON CONFLICT(ip) DO NOTHING";
+  let r2 = try(() => sql_write(visits_db, sql2, [t + 2592000, t, since]));
+  if (r2.err != null) {
+    print("visits: 初始化无来源爬虫失败: " + r2.err);
+  }
+}
+
+seed_bot_ips();
+
+// 统计口径与 tnsbp-lume / lume-crm 一致：只计公网真人访问 —— 排除回环/内网/
+// 无 IP 记录、LUME_SHOWCASE_IGNORE_IPS 里的忽略 IP，以及无 UA/健康检查/
+// cicdkit 探针/常见搜索引擎与 AI 爬虫的 UA。
+func noise_clause() {
+  let bots = "ua IS NULL OR ua = '' OR ua LIKE '%wget%' OR ua LIKE '%curl%' OR ua LIKE '%go-http-client%' OR ua LIKE '%kube-probe%' OR ua LIKE '%python-requests%' OR ua LIKE '%googlebot%' OR ua LIKE '%googleother%' OR ua LIKE '%bingbot%' OR ua LIKE '%baiduspider%' OR ua LIKE '%yandexbot%' OR ua LIKE '%duckduckbot%' OR ua LIKE '%petalbot%' OR ua LIKE '%bytespider%' OR ua LIKE '%semrushbot%' OR ua LIKE '%ahrefsbot%' OR ua LIKE '%mj12bot%' OR ua LIKE '%sogou%' OR ua LIKE '%360spider%' OR ua LIKE '%ia_archiver%' OR ua LIKE '%archive.org_bot%' OR ua LIKE '%gptbot%' OR ua LIKE '%chatgpt-user%' OR ua LIKE '%ccbot%' OR ua LIKE '%applebot%' OR ua LIKE '%claudebot%' OR ua LIKE '%facebookexternalhit%' OR ua LIKE '%twitterbot%' OR ua LIKE '%linkedinbot%' OR ua LIKE '%pinterest%' OR ua LIKE '%telegrambot%' OR ua LIKE '%whatsapp%' OR ua LIKE '%uptimerobot%' OR ua LIKE '%pingdom%' OR ua LIKE '%better uptime%'";
+  return bots;
+}
+
+// 按保留期清理过期访客记录与 bot_ips（写路径，低频）。
+func cleanup_visits() {
+  if (visit_retention_days <= 0) {
+    return;
+  }
+  let cutoff = int(now()) - visit_retention_days * 86400;
+  let r = try(() => sql_write(visits_db, "DELETE FROM visits WHERE created < ?", [cutoff]));
+  if (r.err != null) {
+    print("visits: 清理历史失败: " + r.err);
+  }
+  let rb = try(() => sql_write(visits_db, "DELETE FROM bot_ips WHERE until < ?", [int(now()) - 86400]));
+  if (rb.err != null) {
+    print("visits: 清理爬虫 IP 失败: " + rb.err);
+  }
+  visit_last_cleanup = int(now());
+}
+
+// 公开埋点限流：同一 IP 在 window_seconds 内达到 limit 条就拒绝，避免脚本刷库。
+// 只读查询，不额外建表；窗口内已有的访问行同时用于汇总和限流。
+export func too_many_visits(ip, limit, window_seconds) {
+  if (ip == null or ip == "") { return false; }
+  let since = int(now()) - window_seconds;
+  let r = q("SELECT COUNT(*) AS n FROM visits WHERE ip = ? AND created >= ?", [ip, since]);
+  return int(get(r, 0, {}), "n", 0) >= limit;
+}
+
+export func record_visit(path, referrer, ua, visitor, ip, wd) {
+  if (visit_last_cleanup > 0 and int(now()) - visit_last_cleanup >= 86400) {
+    cleanup_visits();
+  }
+  let reason = detect_bot(path, referrer, ua, ip, wd);
+  if (reason != "") {
+    mark_bot_ip(ip, reason);
+  }
+  let r = try(() => sql_write(visits_db,
+    "INSERT INTO visits (path, referrer, ua, visitor, ip, created) VALUES (?, ?, ?, ?, ?, ?)",
+    [path, referrer, ua, visitor, ip, int(now())]));
+  if (r.err != null) {
+    print("visits: 写入失败: " + r.err);
+  }
+  return r.err == null;
+}
+
+export func visits_summary() {
+  let priv = "ip IS NULL OR ip = '' OR ip LIKE '127.%' OR ip = '::1' OR ip LIKE '10.%' OR ip LIKE '192.168.%' OR ip LIKE '169.254.%' OR ip LIKE '172.16.%' OR ip LIKE '172.17.%' OR ip LIKE '172.18.%' OR ip LIKE '172.19.%' OR ip LIKE '172.2%.%' OR ip LIKE '172.30.%' OR ip LIKE '172.31.%' OR ip LIKE 'fc%' OR ip LIKE 'fe80%'";
+  let ignore = env("LUME_SHOWCASE_IGNORE_IPS");
+  if (ignore != null and ignore != "") {
+    ignore = replace(replace(ignore, " ", ""), "'", "");
+    priv = priv + " OR ip IN ('" + replace(ignore, ",", "','") + "')";
+  }
+  priv = priv + " OR " + noise_clause();
+  priv = priv + " OR ip IN (SELECT ip FROM bot_ips WHERE until > " + str(int(now())) + ")";
+  let total = int(get(q("SELECT COUNT(*) AS n FROM visits WHERE NOT (" + priv + ")", null), 0, {}), "n", 0);
+  let today = int(get(q("SELECT COUNT(*) AS n FROM visits WHERE date(created,'unixepoch','localtime') = date('now','localtime') AND NOT (" + priv + ")", null), 0, {}), "n", 0);
+  let uv = int(get(q("SELECT COUNT(DISTINCT visitor) AS n FROM visits WHERE NOT (" + priv + ")", null), 0, {}), "n", 0);
+  let start = int(now()) - 13 * 86400;
+  let days = [];
+  for (s in q("SELECT date(created,'unixepoch','localtime') AS d, COUNT(*) AS pv, COUNT(DISTINCT visitor) AS uv FROM visits WHERE created >= ? AND NOT (" + priv + ") GROUP BY d ORDER BY d DESC LIMIT 14", [start])) {
+    push(days, { d: s.d, pv: int(s.pv), uv: int(s.uv) });
+  }
+  let recent = [];
+  for (s in q("SELECT datetime(created,'unixepoch','localtime') AS t, ip, referrer, path, ua FROM visits WHERE NOT (" + priv + ") ORDER BY id DESC LIMIT 20", null)) {
+    push(recent, { t: s.t, ip: s.ip, referrer: s.referrer, path: s.path, ua: s.ua });
+  }
+  return { total: total, today: today, uv: uv, days: days, recent: recent };
+}
+
+// ------------------------------------------------ PIN 门禁
+// 头名大小写不敏感；支持 X-Showcase-Pin / Authorization: Bearer <pin> /
+// ?pin=。未配置 PIN 时 fail closed（公网不能把访客 IP 列表裸奔）。
+func header_ci(req, want) {
+  let hs = get(req, "headers", null);
+  if (hs == null) {
+    return "";
+  }
+  for (k in keys(hs)) {
+    if (lower(k) == want) {
+      return get(hs, k, "");
+    }
+  }
+  return "";
+}
+
+// 公开埋点的浏览器同源校验: Origin 存在时要求其 host 与 Host 头一致;
+// 无 Origin(服务端/旧客户端)不拦。request headers 不可见时 header_ci 返回 ""。
+export func origin_ok(req) {
+  let origin = header_ci(req, "origin");
+  if (origin == null or origin == "") { return true; }
+  let host = header_ci(req, "host");
+  if (host == null or host == "") { return true; }
+  let o = lower(origin);
+  o = replace(replace(o, "https://", ""), "http://", "");
+  o = split(o, "/")[0];
+  // Host 取 hostname(忽略端口): 反代常用 `$host` 丢端口, 浏览器 Origin 仍可能带端口。
+  return split(o, ":")[0] == split(lower(host), ":")[0];
+}
+
+func auth_pin(req) {
+  let hdr = header_ci(req, "x-showcase-pin");
+  if (hdr != null and hdr != "") {
+    return hdr;
+  }
+  let a = get(req, "authorization", "");
+  if (a == null or a == "") {
+    return "";
+  }
+  let parts = split(a, " ");
+  let n = len(parts);
+  if (lower(parts[0]) == "basic") {
+    return "";
+  }
+  if (n > 1) {
+    return parts[n - 1];
+  }
+  return parts[0];
+}
+
+func is_private_ip(ip) {
+  if (ip == "" or ip == null) { return true; }
+  if (ip == "::1") { return true; }
+  if (replace(ip, "127.", "") != ip) { return true; }
+  if (replace(ip, "10.", "") != ip) { return true; }
+  if (replace(ip, "192.168.", "") != ip) { return true; }
+  if (replace(ip, "169.254.", "") != ip) { return true; }
+  if (replace(ip, "172.16.", "") != ip) { return true; }
+  if (replace(ip, "172.17.", "") != ip) { return true; }
+  if (replace(ip, "172.18.", "") != ip) { return true; }
+  if (replace(ip, "172.19.", "") != ip) { return true; }
+  if (replace(ip, "172.2", "") != ip) { return true; }
+  if (replace(ip, "172.30.", "") != ip) { return true; }
+  if (replace(ip, "172.31.", "") != ip) { return true; }
+  if (replace(ip, "fc", "") != ip) { return true; }
+  if (replace(ip, "fe80", "") != ip) { return true; }
+  return false;
+}
+
+export func client_ip(req) {
+  // 只有来自回环/内网的反代（nginx 或 Docker 网关）才可信 X-Real-IP /
+  // X-Forwarded-For；腾讯云 8080 直连时连接端就是客户端公网 IP，忽略可
+  // 伪造的代理头。可信 XFF 取「最右非空跳」，客户端自带的左侧跳不可信。
+  let remote = get(req, "remote_addr", "");
+  if (remote != "" and remote != null and not is_private_ip(remote)) {
+    return remote;
+  }
+  let ip = "";
+  let xff = get(req, "x_forwarded_for", "");
+  if (xff != "" and xff != null) {
+    let hops = split(replace(xff, " ", ""), ",");
+    for (h in hops) {
+      if (h != "") { ip = h; }
+    }
+  }
+  if (ip == "") {
+    ip = get(req, "x_real_ip", "");
+  }
+  if (ip == "" or ip == null) {
+    ip = remote;
+  }
+  return ip;
+}
+
+export func visit_gate(req) {
+  if (visit_pin == null or visit_pin == "") {
+    return { status: 403, error: "访客统计 PIN 未配置" };
+  }
+  let from_hdr = auth_pin(req);
+  let from_query = get(req.query_params, "pin", "");
+  if (from_hdr == visit_pin or from_query == visit_pin) {
+    return null;
+  }
+  return { status: 403, error: "forbidden" };
+}

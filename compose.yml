@@ -11,9 +11,20 @@ services:
     container_name: lume-showcase   # explicit (avoid lume-showcase-showcase-1)
     ports:
       - "18793:18793"
-    read_only: true          # server writes no files (/tmp is the only writable mount)
+    read_only: true          # 除 named volume 外不写文件
     tmpfs:
       - /tmp
+    volumes:
+      - showcase_data:/app/data   # 访客统计 SQLite（跨重启/重新发布保留）
+    environment:
+      LUME_SHOWCASE_DATA_DIR: /app/data
+      # 本地 compose 默认不设 PIN；公网部署必须注入，否则 /api/visits fail closed。
+      LUME_SHOWCASE_VISIT_PIN: ${LUME_SHOWCASE_VISIT_PIN:-}
+      # 可选：逗号分隔的忽略 IP（例如自己的固定出口 IP），不计入访客统计。
+      LUME_SHOWCASE_IGNORE_IPS: ${LUME_SHOWCASE_IGNORE_IPS:-}
     mem_limit: 256m
     cpus: 0.5
     restart: unless-stopped
+
+volumes:
+  showcase_data:

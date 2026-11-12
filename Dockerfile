@@ -44,10 +44,17 @@ COPY --from=core --chown=app:app /src/lume-core/bin/lume-core ./bin/lume-core
 COPY --from=ui --chown=app:app /build/dist ./web/dist
 COPY --chown=app:app lume-showcase/server.lume ./server.lume
 COPY --chown=app:app lume-showcase/src ./src
+# 访客统计 SQLite：数据目录必须可写；容器以 --read-only 运行时用 named
+# volume 挂到 /app/data（镜像内先建目录并交给 app 用户，volume 首挂继承权限）。
+RUN mkdir -p /app/data && chown app:app /app/data
 USER app
 ENV LUME_BIND=0.0.0.0
-# server writes no files: --read-only safe (/tmp is the only writable mount).
+ENV LUME_SHOWCASE_DATA_DIR=/app/data
+# Alpine 默认 UTC；SQLite 的 localtime() 走 libc，这里用 POSIX TZ 固定东八区。
+ENV TZ=CST-8
+# 除数据卷外不写文件；/tmp 保持 tmpfs，/app/data 由部署卷提供。
 VOLUME /tmp
+VOLUME /app/data
 LABEL org.opencontainers.image.title="lume-showcase" \
       org.opencontainers.image.description="lume language + lume-core runtime showcase (API + React UI)" \
       org.opencontainers.image.licenses="MIT"

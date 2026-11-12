@@ -32,6 +32,17 @@ cd web && npm install && npm run build
 cd web && npm run dev   # http://localhost:5173
 ```
 
+### 访客统计
+
+公开页每次加载向 `POST /api/visit` 上报一次 PV（前端 `recordVisit()`）；
+`GET /api/visits` 返回 `total/today/uv/days/recent`，由 PIN 门禁保护。部署时
+设置 `LUME_SHOWCASE_VISIT_PIN`，并把 SQLite 放到只读根之外
+（`LUME_SHOWCASE_DATA_DIR`，容器内 `/app/data` 挂 named volume）。启动时清理
+90 天前记录，运行中最多每 24h 再清一次；`/api/visit` 每 IP 60 秒最多 30 次，
+超出返回 429。回环/内网 IP、`LUME_SHOWCASE_IGNORE_IPS`（逗号分隔，可填自己的出口
+IP）、健康检查/探针/爬虫 UA 不计入汇总。`recent` 展示从 `remote_addr` 或可信代理头拿到的客户端 IP。
+反代若记录 access log，请对 `/api/visits` 的 `?pin=` 打码或直接 `access_log off`，避免 PIN 落盘。
+
 界面有**语言切换**（右上角·English / 中文）。lume-core API 保持英文（公共事实来源）；前端为中文视图翻译显示字符串，并在 `localStorage` 记住选择。无存储偏好时跟随浏览器语言（默认英文）。
 
 **Agent** 页签展示自主 **计划 → 执行 → 观察 → 优化** 循环，用自包含的 lume 循环（确定性策略，无外部 LLM 调用）。lume-core 暴露智能体内省（`catalog`/`tools`/`mcps`/`skills`）与可选 LLM 钩子（`LLM_API_URL`/`LLM_MODEL`），但这些内建属解释器侧——demo 保持纯 lume，使解释器、文本与 LLVM 后端保持逐字节一致。
@@ -44,6 +55,7 @@ src/overview.lume      "lume 是什么" 导览（导出 overview_sections()）
 src/features.lume      语言特性自检（导出 feature_list()）
 src/algorithms.lume    算法 demo + wall-1/2/3 指标（导出 algorithm_list()）
 src/agent.lume         智能体循环 demo（导出 agent_demo()）
+src/visits.lume        访客 SQLite + PIN 门禁（导出 visits_summary()）
 web/                   React 前端（Vite + TS）
   src/App.tsx          shell + 懒加载页签加载器（React.lazy + Suspense）
   src/tabs/            每页签一个 chunk（Overview/Features/Algorithms/Apps/Agent/Performance）

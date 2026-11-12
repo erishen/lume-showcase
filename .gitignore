@@ -6,3 +6,6 @@ web/*.tsbuildinfo
 *.exe
 *.o
 .DS_Store
+
+# local visitor SQLite (LUME_SHOWCASE_DATA_DIR default)
+.data/

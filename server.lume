@@ -12,6 +12,7 @@ import "./src/features.lume" as feats;
 import "./src/algorithms.lume" as algos;
 import "./src/agent.lume" as agent;
 import "./src/overview.lume" as overview;
+import "./src/visits.lume" as visits;
 
 // ---- public application catalog (neutral · no industry/proprietary info) ----
 func apps() {
@@ -40,36 +41,107 @@ func bench() {
   return out;
 }
 
-func json(s: string) {
+func json_resp(s: string) {
   return { status: 200, type: "application/json", body: s };
 }
 
+// body 解析糖：固定两键 { ok, err }，路由侧 b.ok / b.err 安全访问。
+func body_of(req) {
+  if (req.body == null) {
+    return { ok: null, err: "缺少 body" };
+  }
+  let r = try(() => json(req.body));
+  if (r.err != null) {
+    return { ok: null, err: "body 不是合法 JSON: " + r.err };
+  }
+  return { ok: r.ok, err: null };
+}
+
+// 埋点字段只留 path（剥 query/hash）；referrer 同样剥 query/hash，
+// 避免把第三方 URL 里的 token/搜索词写进统计。
+func clean_url(s) {
+  if (s == null) {
+    return "";
+  }
+  let out = split(s, "?")[0];
+  out = split(out, "#")[0];
+  return out;
+}
+
+func cap(s, n) {
+  if (s == null) {
+    return "";
+  }
+  if (len(s) > n) {
+    return substr(s, 0, n);
+  }
+  return s;
+}
+
+// 访客统计是 owner 数据（含原始 IP/UA），显式禁止缓存。
+func no_store(body) {
+  return { headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" }, body: body };
+}
+
 get "/api/health", (req) => {
-  return json(stringify({ ok: true, service: "lume-showcase", cores: 1 }));
+  return json_resp(stringify({ ok: true, service: "lume-showcase", cores: 1 }));
 };
 
 get "/api/features", (req) => {
-  return json(stringify(feats.feature_list()));
+  return json_resp(stringify(feats.feature_list()));
 };
 
 get "/api/overview", (req) => {
-  return json(stringify(overview.overview_sections()));
+  return json_resp(stringify(overview.overview_sections()));
 };
 
 get "/api/algorithms", (req) => {
-  return json(stringify(algos.algorithm_list()));
+  return json_resp(stringify(algos.algorithm_list()));
 };
 
 get "/api/apps", (req) => {
-  return json(stringify(apps()));
+  return json_resp(stringify(apps()));
 };
 
 get "/api/agent", (req) => {
-  return json(stringify(agent.agent_list()));
+  return json_resp(stringify(agent.agent_list()));
 };
 
 get "/api/bench", (req) => {
-  return json(stringify(bench()));
+  return json_resp(stringify(bench()));
+};
+
+// 访客统计：owner-only，PIN 门禁。线上 cicdkit 用 ?pin= 代理读取；
+// 该响应含原始 IP/UA，必须 no-store，避免浏览器/中间代理缓存。
+get "/api/visits", (req) => {
+  let gate = visits.visit_gate(req);
+  if (gate != null) { return gate; }
+  return no_store(visits.visits_summary());
+};
+
+// 页面加载埋点：公开（只读展示也要统计访问量）。client_ip() 优先信任来自
+// 回环/内网反代的 X-Forwarded-For / X-Real-IP，直连时回退连接端 remote_addr。
+post "/api/visit", (req) => {
+  if (not visits.origin_ok(req)) {
+    return { status: 403, body: { ok: false, error: "origin 不允许" } };
+  }
+  let b = body_of(req);
+  if (b.err != null) {
+    return { ok: false, error: b.err };
+  }
+  let path = cap(clean_url(str(b.ok, "path", "/")), 512);
+  if (path == "") { path = "/"; }
+  let referrer = cap(clean_url(str(b.ok, "referrer", "")), 1024);
+  let ua = cap(str(b.ok, "ua", ""), 512);
+  let visitor = cap(str(b.ok, "visitor", ""), 64);
+  let wd = cap(str(b.ok, "wd", ""), 8);
+  if (visitor == "") { visitor = "anon"; }
+  let ip = visits.client_ip(req);
+  if (visits.too_many_visits(ip, 30, 60)) {
+    return { status: 429, body: { ok: false, error: "请求过于频繁" } };
+  }
+  visits.record_visit(path, referrer, ua, visitor, ip, wd);
+  return { ok: true, recorded: true };
 };
 
 // Bind address defaults to 127.0.0.1 (local-safe); override for container or
